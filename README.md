@@ -67,14 +67,28 @@ Python 3 だけで動きます(追加のパッケージは要りません)。
 ## pico-os の公式アプリの更新(管理者)
 
 公式アプリの開発元は pico-os の `pc/sdcard/lua/apps/` です(テストとPCビルドがそこを使うため)。
-版を上げてから、pico-os を隣に置いて写して署名し、PRを出します(owners なので、版が上がっていれば自動でマージされます)。
+pico-os で `app.cfg` の `version` を上げてから、pico-os を隣に置いて、版が上がったものをまとめて写して署名し、1つのPRを出します。
 
 ```sh
-python3 script/build_app_repo.py author-sign --key ~/.pico-os/app_repo.key --app apps/tetris \
-    --src ../pico-os/pc/sdcard/lua/apps/テトリス
+python3 script/build_app_repo.py sync-official --key ~/.pico-os/app_repo.key \
+    --src ../pico-os/pc/sdcard/lua/apps --dry-run   # 何をするか確かめる
+python3 script/build_app_repo.py sync-official --key ~/.pico-os/app_repo.key \
+    --src ../pico-os/pc/sdcard/lua/apps             # 写して署名する
+git checkout -b update-apps && git add apps && git commit -m "公式アプリの更新" && git push -u origin update-apps
 ```
 
-`--src` は git が管理しているファイルだけを写します(遊んでいる間にできたセーブ等は写らない)。
+- 写すのは、ここに同じ id があり、`meta.cfg` の鍵が `--key` のアプリで、版が上がったものだけです(他の作者のアプリには触れません)。
+- 版を上げずに中身が変わったもの・ここより古い版は、警告だけ出して写しません。まだ公開していないアプリは一覧に出すだけです。
+- 2本以上を1つのPRにすると `needs-review` が付くので、管理者がマージします(1本だけなら自動でマージされます)。
+
+初めて公開する公式アプリは、`meta.cfg` も作るので1本ずつ `author-sign` で入れます。
+
+```sh
+python3 script/build_app_repo.py author-sign --key ~/.pico-os/app_repo.key --app apps/<id> \
+    --src ../pico-os/pc/sdcard/lua/apps/<ディレクトリ> --owner kimu1109 --dir <ディレクトリ>
+```
+
+どちらも `--src` から git が管理しているファイルだけを写します(遊んでいる間にできたセーブ等は写らない)。
 
 ## 管理者の準備(1回だけ)
 

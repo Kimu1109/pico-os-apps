@@ -27,6 +27,8 @@
   # --src を付けると pico-os の pc/sdcard から app/ へ写してから署名する(公式アプリの更新)
   python3 script/build_app_repo.py author-sign --key ~/.pico-os/author.key --app apps/tetris \
       [--src ../pico-os/pc/sdcard/lua/apps/テトリス] [--owner <GitHubのアカウント> --dir テトリス(初めてのとき)]
+  # 公式アプリのうち版が上がったものを、まとめて写して署名する(pico-os-apps のディレクトリで。1つのPRにする)
+  python3 script/build_app_repo.py sync-official --key ~/.pico-os/app_repo.key --src ../pico-os/pc/sdcard/lua/apps [--dry-run]
   # 同じリポジトリのCIが使う: PRの検査と自動マージの判定 / 配布物を作ってカタログ鍵で署名
   python3 -I script/build_app_repo.py registry-check --registry pr --base main --user <login> --luac luac5.4 --out result.json
   python3 script/build_app_repo.py registry-build --registry . --key catalog.key --out _site --prev-catalog prev.tsv
@@ -849,26 +851,28 @@ def cmd_registry_build(args):
     print(f"{args.out}: {len(apps)}件のアプリ(serial {serial}、カタログ鍵 {ed25519_public(seed).hex()})")
 
 
-def cmd_author_sign(args):
-    """投稿用リポジトリの apps/<id>/ に files.tsv と files.sig を作る(作者が手元で)。
-    --src を付けると、先に app/ をそのディレクトリの中身で置き換える(pico-os の pc/sdcard から写すとき)"""
-    seed = load_seed(args.key)
+def copy_app_files(src, app_dir):
+    """src のgitが管理しているファイルで app_dir を置き換える(遊んでいる間にできたセーブ等は写さない)"""
+    files = tracked_files(src)
+    if os.path.isdir(app_dir):
+        shutil.rmtree(app_dir)
+    for rel in files:
+        dst = os.path.join(app_dir, rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(os.path.join(src, rel), dst)
+
+
+def author_sign(seed, base, src=None, owner=None, dir_name=None):
+    """apps/<id>(base)に files.tsv と files.sig を作る。src があれば先に app/ を置き換える。署名したアプリを返す"""
     pub = ed25519_public(seed).hex()
-    base = os.path.normpath(args.app)
     app_dir = os.path.join(base, "app")
-    if args.src:
-        files = tracked_files(args.src)
-        if os.path.isdir(app_dir):
-            shutil.rmtree(app_dir)
-        for rel in files:
-            dst = os.path.join(app_dir, rel)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(os.path.join(args.src, rel), dst)
+    if src:
+        copy_app_files(src, app_dir)
     meta_path = os.path.join(base, "meta.cfg")
     if not os.path.isfile(meta_path):
-        if not (args.owner and args.dir):
+        if not (owner and dir_name):
             raise SystemExit(f"{meta_path} がありません。初めての投稿なら --owner <GitHubのアカウント> --dir <表示するディレクトリ名> を付けてください")
-        write_bytes(meta_path, f"owners = {args.owner}\nkey = {pub}\ndir = {args.dir}\n".encode("utf-8"))
+        write_bytes(meta_path, f"owners = {owner}\nkey = {pub}\ndir = {dir_name}\n".encode("utf-8"))
         print(f"{meta_path} を作りました")
     meta = read_meta(meta_path, base)
     if meta["key"] != pub:
@@ -879,7 +883,75 @@ def cmd_author_sign(args):
         raise SystemExit(f"{base}: app.cfg の id ({a.id}) がディレクトリ名と違います")
     write_bytes(os.path.join(base, "files.tsv"), a.files_tsv)
     write_bytes(os.path.join(base, "files.sig"), sign_files(seed, a.id, a.version, a.files_tsv))
-    print(f"{base}: {a.name} {a.version}({len(a.files)}ファイル、{a.bytes}バイト、権限 {a.perms})に署名しました")
+    return a
+
+
+def cmd_author_sign(args):
+    """投稿用リポジトリの apps/<id>/ に files.tsv と files.sig を作る(作者が手元で)。
+    --src を付けると、先に app/ をそのディレクトリの中身で置き換える(pico-os の pc/sdcard から写すとき)"""
+    a = author_sign(load_seed(args.key), os.path.normpath(args.app), args.src, args.owner, args.dir)
+    print(f"{os.path.normpath(args.app)}: {a.name} {a.version}({len(a.files)}ファイル、{a.bytes}バイト、権限 {a.perms})に署名しました")
+
+
+def cmd_sync_official(args):
+    """pico-os の公式アプリ(--src の下)のうち、版が上がったものだけを投稿用リポジトリへ写して署名する。
+    写すのは、投稿用リポジトリに同じ id があり、その meta.cfg の鍵がこの鍵のものだけ(他の作者のアプリには触れない)。
+    新しいアプリ(投稿用リポジトリにまだ無いもの)は写さず、一覧に出すだけ(初めての公開は author-sign で)"""
+    seed = load_seed(args.key)
+    pub = ed25519_public(seed).hex()
+    apps_root = os.path.join(args.registry, "apps")
+    if not os.path.isdir(apps_root):
+        raise SystemExit(f"{apps_root} がありません(--registry は投稿用リポジトリのディレクトリ)")
+    updated, warned, unpublished, same = [], [], [], 0
+    for name in sorted(os.listdir(args.src)):
+        src = os.path.join(args.src, name)
+        if not os.path.isfile(os.path.join(src, "app.cfg")):
+            continue
+        cfg = read_app_cfg(os.path.join(src, "app.cfg"))
+        app_id = cfg.get("id", "")
+        if not app_id:
+            continue
+        base = os.path.join(apps_root, app_id)
+        if not os.path.isdir(base):
+            unpublished.append(f"{app_id}({name})")
+            continue
+        try:
+            meta = read_meta(os.path.join(base, "meta.cfg"), f"apps/{app_id}")
+            if meta["key"] != pub:
+                warned.append(f"{app_id}: meta.cfg の鍵がこの鍵と違うので写しません(他の作者のアプリか、鍵の取り違え)")
+                continue
+            new = load_app(src, meta["dir"], tracked_files(src), f"{name}/app.cfg")
+            old = read_app_cfg(os.path.join(base, "app", "app.cfg")).get("version", "")
+        except SystemExit as e:
+            warned.append(f"{app_id}: {e}")
+            continue
+        if new.dir != name:
+            warned.append(f"{app_id}: pc/sdcard のディレクトリ名 ({name}) と meta.cfg の dir ({meta['dir']}) が違います(dir は meta.cfg のまま)")
+        if not VERSION_RE.match(old) or version_tuple(new.version) > version_tuple(old):
+            if not args.dry_run:
+                author_sign(seed, base, src)
+            updated.append(f"{app_id}: {old or '?'} → {new.version}")
+        elif version_tuple(new.version) < version_tuple(old):
+            warned.append(f"{app_id}: pc/sdcard の版 ({new.version}) が投稿用リポジトリ ({old}) より古いので写しません")
+        else:
+            with open(os.path.join(base, "files.tsv"), "rb") as f:
+                if f.read() != new.files_tsv:
+                    warned.append(f"{app_id}: 中身が変わっているのに版 ({new.version}) が同じなので写しません(app.cfg の version を上げてください)")
+                else:
+                    same += 1
+    if warned and not updated and not same and all("鍵がこの鍵と違う" in w for w in warned):
+        raise SystemExit(f"この鍵 ({pub[:8]}…) で署名した公式アプリが投稿用リポジトリに1つもありません。--key を確かめてください")
+    head = "写して署名します(--dry-run なので書いていません)" if args.dry_run else "写して署名しました"
+    print(f"{head}: {len(updated)}件")
+    for u in updated:
+        print(f"  {u}")
+    for w in warned:
+        print(f"::warning::{w}")
+    if unpublished:
+        print("まだ公開していないアプリ(初めては author-sign --src ... --owner ... --dir ... で): " + ", ".join(unpublished))
+    print(f"変わりなし: {same}件")
+    if updated and not args.dry_run:
+        print("git add apps && git commit して、1つのPRにしてください(2本以上なら needs-review になるので、管理者がマージします)")
 
 
 # ---------------------------------------------------------------------------
@@ -1130,6 +1202,13 @@ def main():
     p.add_argument("--owner", help="初めての投稿で meta.cfg を作るときの GitHub のアカウント")
     p.add_argument("--dir", help="初めての投稿で meta.cfg を作るときの /lua/apps/ の下の名前")
     p.set_defaults(func=cmd_author_sign)
+
+    p = sub.add_parser("sync-official", help="pico-os の公式アプリのうち版が上がったものをまとめて写して署名する")
+    p.add_argument("--key", required=True, help="作者の鍵(公式アプリの meta.cfg の key と同じもの)")
+    p.add_argument("--src", required=True, help="pico-os の pc/sdcard/lua/apps")
+    p.add_argument("--registry", default=".", help="投稿用リポジトリのディレクトリ(既定 .)")
+    p.add_argument("--dry-run", action="store_true", help="何をするかだけ表示して、書かない")
+    p.set_defaults(func=cmd_sync_official)
 
     p = sub.add_parser("registry-check", help="投稿用リポジトリの検査と自動マージの判定(CI)")
     p.add_argument("--registry", required=True, help="PRの中身")
