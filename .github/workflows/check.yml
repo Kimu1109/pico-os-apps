@@ -1,0 +1,140 @@
+# 投稿(PR)の検査と自動マージ。決まりは README.md「マージの決まり」、設計は pico-os の docs/design/lua-apps.md「アプリストアの投稿」。
+#
+# 守り方:
+# - pull_request_target なので、このファイルと検査の道具(script/)はいつも main のものが動く。
+#   PRがワークフローや道具を書き換えても、自分の判定を甘くできない。
+# - PRの中身は pr/ にデータとして取るだけで、実行しない(python3 -I で main の道具が読む。luac は構文を見るだけ)。
+#   pr/ の取得には書き込みの権限もSecretも渡さない(persist-credentials: false)。
+# - 判定する役(読むだけ)とマージする役(書く)をジョブで分ける。マージする役は判定の結果を読むだけで、
+#   判定した commit のままで、main も進んでいないときだけマージする。
+name: 投稿の検査
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  judge:
+    name: 検査と判定
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: 検査の道具を main から取る
+        uses: actions/checkout@v4
+        with:
+          path: base
+          persist-credentials: false
+
+      - name: PRの中身をデータとして取る
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          persist-credentials: false
+
+      - name: luac を入れる(.lua の構文だけ確かめる)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          luac5.4 -v
+
+      - name: 検査する
+        env:
+          PR_USER: ${{ github.event.pull_request.user.login }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.sha }}
+        run: |
+          rc=0
+          python3 -I base/script/build_app_repo.py registry-check --registry pr --base base \
+            --user "$PR_USER" --luac luac5.4 --out result.json --summary "$GITHUB_STEP_SUMMARY" || rc=$?
+          if [ ! -f result.json ]; then
+            printf '{"ok": false, "errors": ["検査の道具が止まりました(ログを見てください)"], "automerge": false, "reasons": []}' > result.json
+          fi
+          # マージする役が「判定したときのまま」か確かめるための印
+          python3 -I -c 'import json, os, sys; r = json.load(open("result.json")); r["head_sha"] = os.environ["HEAD_SHA"]; r["base_sha"] = os.environ["BASE_SHA"]; json.dump(r, open("result.json", "w"), ensure_ascii=False)'
+          exit $rc
+
+      - name: 結果を渡す
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: result.json
+          if-no-files-found: ignore
+
+  act:
+    name: マージかラベル
+    needs: judge
+    if: always() && needs.judge.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write       # マージ
+      pull-requests: write  # マージ・コメント
+      issues: write         # ラベル
+      actions: write        # 公開のワークフローを起こす(GITHUB_TOKEN のマージでは push のワークフローが動かないため)
+    steps:
+      - name: 結果を受け取る
+        id: dl
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: result
+
+      - name: マージする、または管理者に回す
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const issue_number = pr.number;
+            let r = { ok: false, errors: ['検査の結果がありません(ログを見てください)'], automerge: false, reasons: [] };
+            try { r = JSON.parse(fs.readFileSync('result.json', 'utf8')); } catch (e) {}
+
+            const MARK = '<!-- pico-os-apps-check -->';
+            const say = async (body) => {
+              body = MARK + '\n' + body + '\n\n---\n_投稿の検査(.github/workflows/check.yml)_';
+              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+              const old = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(MARK));
+              if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
+              else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            };
+            const label = async (on) => {
+              if (on) await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-review'] });
+              else await github.rest.issues.removeLabel({ owner, repo, issue_number, name: 'needs-review' }).catch(() => {});
+            };
+            const list = (xs) => xs.map(x => '- ' + x).join('\n');
+
+            if (!r.ok) {
+              await label(false);
+              await say('### 検査に落ちました\n\n' + list(r.errors) + '\n\n直して push すると、もう一度検査します。');
+              core.setFailed('検査に落ちました');
+              return;
+            }
+            if (!r.automerge || pr.draft) {
+              await label(true);
+              await say('### 検査に通りました。管理者が見てからマージします\n\n' +
+                (pr.draft ? '- 下書きのPRです\n' : '') + list(r.reasons || []));
+              return;
+            }
+            // 判定したときのままか(後から push されていないか・main が進んでいないか)
+            const now = (await github.rest.pulls.get({ owner, repo, pull_number: issue_number })).data;
+            const main = (await github.rest.repos.getBranch({ owner, repo, branch: 'main' })).data.commit.sha;
+            if (now.head.sha !== r.head_sha || main !== r.base_sha) {
+              await say('### 検査の後で PR か main が変わったので、マージしませんでした\n\n' +
+                '新しく push すると検査し直します(管理者は Actions からこの検査を再実行できます)。');
+              return;
+            }
+            await github.rest.pulls.merge({ owner, repo, pull_number: issue_number, sha: r.head_sha, merge_method: 'squash' });
+            await label(false);
+            await say('### 検査に通ったので、自動でマージしました\n\n公開(publish.yml)が終わると、ストアに新しい版が並びます。');
+            await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: 'publish.yml', ref: 'main' });

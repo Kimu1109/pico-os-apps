@@ -1,0 +1,75 @@
+# 公開: main の apps/ と status.tsv から配布物(pico-os の docs/APP_REPO.md 形式2)を作り、
+# カタログ鍵で catalog.tsv に署名して GitHub Pages(https://kimu1109.github.io/pico-os-apps/)へ出す。
+# アプリのコードは実行しない。files.sig は作者が手元で付けた署名をそのまま配る(ここでは作れない)。
+#
+# カタログ鍵は Environment「catalog」の Secret CATALOG_KEY(16進64桁)。Environment は main からしか使えないようにしておく
+# (README.md「管理者の準備」)。リポジトリの変数 CATALOG_PUBKEY があれば、その鍵で署名できたかも確かめる。
+name: 公開
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # check.yml が自動マージの後に起こす
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: 配布物を作って署名する
+    runs-on: ubuntu-24.04
+    environment: catalog
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: 配布物を作る
+        env:
+          CATALOG_KEY: ${{ secrets.CATALOG_KEY }}
+          CATALOG_PUBKEY: ${{ vars.CATALOG_PUBKEY }}
+        run: |
+          if [ -z "$CATALOG_KEY" ]; then
+            echo "::error::Environment「catalog」の Secret CATALOG_KEY がありません(README.md「管理者の準備」)"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/catalog.key"
+          (umask 077; printf '%s\n' "$CATALOG_KEY" > "$key")
+          # serial は今公開している一覧より大きくする(本体は前に見たものより小さい serial を断る)
+          url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/catalog.tsv"
+          curl -fsS --max-time 30 -o "$RUNNER_TEMP/prev.tsv" "$url" || echo "今の一覧を取れませんでした(初めての公開なら正常)"
+          rc=0
+          python3 script/build_app_repo.py registry-build --registry . --key "$key" --out _site \
+            --prev-catalog "$RUNNER_TEMP/prev.tsv" || rc=$?
+          rm -f "$key"
+          [ "$rc" -eq 0 ] || exit "$rc"
+          if [ -n "$CATALOG_PUBKEY" ]; then
+            python3 script/build_app_repo.py verify --dir _site --pubkey "$CATALOG_PUBKEY"
+          else
+            python3 script/build_app_repo.py verify --dir _site
+          fi
+          python3 script/build_app_repo.py site --dir _site --template web/store.html
+          test -f _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: GitHub Pages へ出す
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

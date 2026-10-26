@@ -1,0 +1,14 @@
+; テトリスのBGM。コロベイニキ(ロシア民謡、パブリックドメイン)の前半8小節をループする
+; チャンネル2(B)は効果音用に空けてある(main.lua の SE)
+#title    コロベイニキ
+#composer ロシア民謡
+#tempo    150
+
+#macro k = @noise o6 v11 E-1 q8 c16 r16
+#macro h = @noise_short o8 v3 q8 c32 r16.
+#macro s = @noise o8 v8 E-1 q8 c8
+
+A @pulse25 v11 E-3 o5 l8 q7  L e4 < b > c d4 c < b | a4 a > c e4 d c | < b4. > c d4 e4 | c4 < a4 a2 >
+A                              d4. f a4 g f | e4. c e4 d c | < b4 b > c d4 e4 | c4 < a4 a4 r4 >
+C @triangle v13 o2 l8 q6       L [e>e<]4 [a>a<]4 [e>e<]4 [a>a<]4 > [d>d<]4 [c>c<]4 < [e>e<]4 [a>a<]4
+D                              L [ $k $h $s $h ]16
