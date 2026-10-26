@@ -1,0 +1,257 @@
+<!doctype html>
+<!--
+  アプリストアのWebのページ(https://kimu1109.github.io/pico-os-apps/。投稿用リポジトリ kimu1109/pico-os-apps の Pages)。
+  script/build_app_repo.py site が、配布物(catalog.tsv 等)から次を埋めて <配布物>/index.html として置く:
+    アプリのカード(APPS の印のコメント) / 件数(COUNT の印) / 作った日(UPDATED の印)
+  カードの中身は render_card()(同じスクリプト)。各カードの DOWNLOAD は <id>-<版>.papp(SDの直下に置けば
+  次の起動で入るパッケージ。docs/APP_REPO.md「パッケージ(.papp)」)。
+  端末のストア(ランチャの「ストア」)は同じURLの catalog.tsv を読むので、このページと同じものが並ぶ。
+
+  見た目はトップ(pc/web/landing.html)と同じ: OSのパレット・2px線・右下に影・DotGothic16 / Press Start 2P。
+  JavaScriptは絞り込みとテーマの切り替えだけ(無くても一覧とダウンロードは使える)。
+  pico-os の Pages とは別のサイトに置くので、トップ・PLAY・LUA API へのリンクは絶対URLで書く。
+  正本はこのファイルで、pico-os-apps の web/store.html はその写し(直したら写し直す)。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pico-os App Store</title>
+<meta name="description" content="pico-os のLuaアプリを探してダウンロードできます。SDカードの直下に置くと、次の起動でインストールされます。">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  /* ---- 色: OSのパレット16色(landing.html と同じ) ---- */
+  :root {
+    --c0: #000000; --c1: #000080; --c7: #d3d3d3; --c8: #808080; --c9: #0000ff;
+    --c10: #00ff00; --c12: #ff0000; --c14: #ffff00; --c15: #ffffff;
+    --fg: var(--c0);
+    --bg: var(--c15);
+    --muted: #555555;
+    --line: var(--c0);
+    --soft: var(--c7);
+    --accent: var(--c9);
+    --page: #f2f2ee;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --c0: #ebebeb; --c1: #7896ff; --c7: #404048; --c8: #aaaab0; --c9: #466eff;
+      --c10: #28c83c; --c12: #ff4646; --c14: #e6c828; --c15: #101014;
+      --accent: var(--c1);
+      --muted: var(--c8);
+      --page: #08080a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --c0: #ebebeb; --c1: #7896ff; --c7: #404048; --c8: #aaaab0; --c9: #466eff;
+    --c10: #28c83c; --c12: #ff4646; --c14: #e6c828; --c15: #101014;
+    --accent: var(--c1);
+    --muted: var(--c8);
+    --page: #08080a;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--fg);
+    font: 16px/1.8 "DotGothic16", system-ui, sans-serif;
+    -webkit-font-smoothing: none;
+  }
+  .px { font-family: "Press Start 2P", "DotGothic16", monospace; letter-spacing: 0; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px dashed var(--fg); outline-offset: 3px; }
+  img { image-rendering: pixelated; }
+  code { font-family: inherit; background: var(--soft); padding: 0 4px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---- ステータスバー ---- */
+  .statusbar { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 2px solid var(--line); }
+  .statusbar .wrap { display: flex; align-items: center; gap: 12px; height: 44px; }
+  .sb-home { font-size: 12px; color: var(--fg); text-decoration: none; }
+  .sb-nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .sb-nav a { font-size: 10px; color: var(--fg); text-decoration: none; padding: 8px; border: 2px solid transparent; }
+  .sb-nav a:hover { border-color: var(--line); }
+  .sb-nav a.on { background: var(--fg); color: var(--bg); }
+  .theme-btn {
+    width: 32px; height: 32px; padding: 0; cursor: pointer;
+    background: var(--bg); color: var(--fg); border: 2px solid var(--line); font-size: 16px; line-height: 1;
+  }
+  @media (max-width: 480px) { .sb-nav a.opt { display: none; } }
+
+  /* ---- ボタン ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg); color: var(--fg);
+    border: 2px solid var(--line); box-shadow: 4px 4px 0 var(--line);
+    text-decoration: none;
+    font-family: "Press Start 2P", monospace; font-size: 11px; line-height: 1.4;
+    transition: transform .05s, box-shadow .05s;
+  }
+  .btn:hover { background: var(--soft); }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--line); }
+  .btn.primary { background: var(--fg); color: var(--bg); }
+  .btn.primary:hover { background: var(--c1); border-color: var(--c1); color: var(--c15); }
+  .btn small { font-family: "DotGothic16", sans-serif; font-size: 13px; }
+
+  /* ---- 見出し ---- */
+  .hero { padding: 40px 0 24px; }
+  h1 { margin: 0 0 16px; font: clamp(24px, 6vw, 40px)/1.3 "Press Start 2P", monospace; text-shadow: 4px 4px 0 var(--soft); }
+  h1 .cur { color: var(--c12); }
+  .lead { margin: 0 0 8px; font-size: 18px; }
+  .sub { margin: 0; color: var(--muted); }
+
+  /* ---- 入れ方(OSの画面の窓の形) ---- */
+  .win { background: var(--bg); border: 2px solid var(--line); box-shadow: 8px 8px 0 var(--line); margin: 24px 0 40px; }
+  .win-head { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 2px solid var(--line); }
+  .win-head h2 { margin: 0; font: 13px/1.4 "Press Start 2P", monospace; }
+  .win-head .jp { color: var(--muted); font-size: 15px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .steps li { padding: 16px 20px; border-right: 2px solid var(--line); counter-increment: s; font-size: 15px; }
+  .steps li:last-child { border-right: 0; }
+  .steps li::before {
+    content: counter(s); display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 8px;
+    border: 2px solid var(--line); font: 10px "Press Start 2P", monospace;
+  }
+  .steps b { font-weight: normal; background: var(--fg); color: var(--bg); padding: 0 4px; }
+  .note { margin: 0; padding: 12px 20px; border-top: 2px solid var(--line); font-size: 14px; color: var(--muted); }
+  @media (max-width: 720px) {
+    .steps li { border-right: 0; border-bottom: 2px solid var(--line); }
+    .steps li:last-child { border-bottom: 0; }
+    .win { box-shadow: 6px 6px 0 var(--line); }
+  }
+
+  /* ---- 絞り込み ---- */
+  .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 20px; }
+  .tools input {
+    flex: 1 1 240px; min-width: 0; padding: 10px 12px;
+    font: 16px "DotGothic16", sans-serif; color: var(--fg); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 0;
+  }
+  .tools .count { font-size: 10px; color: var(--muted); }
+
+  /* ---- アプリのカード ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 24px; }
+  .card {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 16px; background: var(--bg); border: 2px solid var(--line); box-shadow: 6px 6px 0 var(--line);
+    min-width: 0;
+  }
+  .card:target { outline: 4px solid var(--c14); }
+  .card-head { display: flex; gap: 12px; align-items: center; min-width: 0; }
+  .card-head > div { min-width: 0; }
+  .icon { width: 48px; height: 48px; flex: none; border: 2px solid var(--line); box-sizing: content-box; background: var(--c15); }
+  .noicon { display: block; background: repeating-conic-gradient(var(--soft) 0 25%, var(--bg) 0 50%) 0 0 / 8px 8px; }
+  .card h3 { margin: 0; font-size: 19px; font-weight: normal; line-height: 1.4; overflow-wrap: anywhere; }
+  .meta { margin: 2px 0 0; font-size: 9px; color: var(--muted); overflow-wrap: anywhere; }
+  .desc { margin: 0; font-size: 15px; flex: 1; overflow-wrap: anywhere; }
+  .perms { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .perm { font-size: 13px; padding: 0 6px; border: 2px solid var(--line); }
+  .perm.none { color: var(--muted); border-color: var(--soft); }
+  .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+  .card-foot .id { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; text-align: right; }
+  .empty { display: none; padding: 32px; text-align: center; border: 2px dashed var(--line); color: var(--muted); }
+  .empty.on { display: block; }
+
+  footer { margin-top: 56px; border-top: 2px solid var(--line); background: var(--bg); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; padding-top: 20px; padding-bottom: 28px; font-size: 14px; color: var(--muted); }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<header class="statusbar">
+  <div class="wrap">
+    <a class="sb-home px" href="https://kimu1109.github.io/pico-os/">PICO-OS</a>
+    <nav class="sb-nav px" aria-label="ページの移動">
+      <a class="on" href="./">STORE</a>
+      <a class="opt" href="https://kimu1109.github.io/pico-os/playground/">PLAY</a>
+      <a class="opt" href="https://kimu1109.github.io/pico-os/lua-api/">LUA API</a>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="明るさのテーマを切り替える" title="テーマを切り替える">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>APP STORE<span class="cur">_</span></h1>
+    <p class="lead">pico-os で動くLuaアプリを、ここから入れられます。</p>
+    <p class="sub">本体のランチャの「ストア」にも同じアプリが並びます(Wi-Fiにつながっていれば、本体だけで入れられます)。</p>
+  </section>
+
+  <section class="win" aria-labelledby="howto">
+    <div class="win-head"><h2 id="howto">HOW TO INSTALL</h2><span class="jp">SDカードから入れる</span></div>
+    <ol class="steps">
+      <li>入れたいアプリの <b>DOWNLOAD</b> を押して <code>.papp</code> ファイルを保存する</li>
+      <li>ファイルを名前を変えずに、SDカードの<b>いちばん上(直下)</b>へコピーする(USBドライブでも可)</li>
+      <li>pico-os を起動する。入るとファイルは消え、ランチャにアプリが並ぶ</li>
+    </ol>
+    <p class="note">入れられなかったときはファイルの名前の後ろに <code>.err</code> が付き、通知に理由が出ます。
+      どのパッケージも作者の署名とファイルごとのSHA-256を本体が確かめてから入れます(途中で壊れたものは入りません)。</p>
+  </section>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="アプリを探す(名前・説明・作者)" aria-label="アプリを探す">
+    <span class="count px" id="count">@@COUNT@@ APPS</span>
+  </div>
+  <div class="cards" id="cards">
+<!--@APPS@-->
+  </div>
+  <p class="empty" id="empty">見つかりませんでした</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>pico-os App Store · 更新 @@UPDATED@@</span>
+    <span><a href="https://github.com/Kimu1109/pico-os-apps#readme">アプリを投稿する</a> ·
+      <a href="https://github.com/Kimu1109/pico-os/blob/main/docs/APP_REPO.md">配布の形式</a> ·
+      <a href="https://github.com/Kimu1109/pico-os">GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+  // 絞り込み(カードの data-search に名前・id・説明・作者を小文字で入れてある)
+  (function () {
+    var q = document.getElementById("q");
+    var cards = document.querySelectorAll("#cards .card");
+    var count = document.getElementById("count");
+    var empty = document.getElementById("empty");
+    function apply() {
+      var words = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      cards.forEach(function (c) {
+        var text = c.getAttribute("data-search");
+        var hit = words.every(function (w) { return text.indexOf(w) >= 0; });
+        c.hidden = !hit;
+        if (hit) shown++;
+      });
+      count.textContent = shown + " APPS";
+      empty.classList.toggle("on", shown === 0);
+    }
+    q.addEventListener("input", apply);
+    apply();
+  })();
+
+  // テーマ切り替え(トップのページと同じ覚え方)
+  (function () {
+    var root = document.documentElement;
+    try {
+      var saved = localStorage.getItem("picoos-theme");
+      if (saved === "light" || saved === "dark") root.dataset.theme = saved;
+    } catch (e) {}
+    document.getElementById("themeBtn").addEventListener("click", function () {
+      var cur = root.dataset.theme ||
+        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      var next = cur === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      try { localStorage.setItem("picoos-theme", next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

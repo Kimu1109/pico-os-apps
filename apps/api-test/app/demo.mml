@@ -1,0 +1,15 @@
+; pico-os MML のサンプル(docs/MUSIC_FORMAT.md)。「動作確認」アプリの「音」のデモ曲と同じもの
+#title    デモ曲
+#composer pico-os
+#tempo    200
+
+; ドラム。マクロの中で変えた波形や音量は、抜けると元に戻る
+#macro k = @noise o6 v13 E-1 q8 c16 r16
+#macro h = @noise_short o8 v4 q8 c32 r16.
+#macro s = @noise o8 v10 E-1 q8 c8
+
+A @pulse25 v12 E-6 o5 l4   L e g a g8 e8 | d e c2 | e g a > c < | b g a2
+B @pulse12 v6  E-2 o4 l8   L c e g e < a > c e c | < f a > c < a g b > d < b >
+B                            c e g e < a > c e c | < f a g b > c e g e
+C @triangle v15    o3 l4   L c c < a a > | < f f g g > | c c < a a > | < f g > c2
+D                          L [ $k $h $s $h ]8          ; 8分×4 = 1小節を8回
