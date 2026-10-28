@@ -134,7 +134,16 @@ jobs:
                 '新しく push すると検査し直します(管理者は Actions からこの検査を再実行できます)。');
               return;
             }
-            await github.rest.pulls.merge({ owner, repo, pull_number: issue_number, sha: r.head_sha, merge_method: 'squash' });
+            const merged = await github.rest.pulls.merge({ owner, repo, pull_number: issue_number, sha: r.head_sha, merge_method: 'squash' });
             await label(false);
             await say('### 検査に通ったので、自動でマージしました\n\n公開(publish.yml)が終わると、ストアに新しい版が並びます。');
             await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: 'publish.yml', ref: 'main' });
+            // スカッシュマージすると head ブランチが main から離れるので、同じリポジトリからの PR なら main に合わせる
+            if (now.head.repo && now.head.repo.full_name === `${owner}/${repo}`) {
+              await github.rest.git.updateRef({
+                owner, repo,
+                ref: `heads/${now.head.ref}`,
+                sha: merged.data.sha,
+                force: true
+              }).catch(e => core.warning(`head ブランチ(${now.head.ref})を main に合わせられませんでした: ${e.message}`));
+            }
