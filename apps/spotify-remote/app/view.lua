@@ -83,6 +83,13 @@ local function bar(x0, x1, y, v, color)
     pico.fill_circle(kx, y, 6, color)
 end
 
+-- ジャケットの欄を除いた所(右の文字の欄と、その下全部)。ジャケットが変わらないときはここだけ描き直す。
+-- 2つは辺で接するだけで重ならないので、1枚の矩形にまとめられない(まとめるとジャケットにかかる)
+function V.rects_except_art()
+    local ax, ay = ART_X + P.ART, ART_Y + P.ART
+    return { { ax, Y, X + W - ax, ay - Y }, { X, ay, W, Y + H - ay } }
+end
+
 -- 再生位置の欄(1秒ごとに描き直すのはここだけ)
 function V.progress_rect() return X, BAR_Y - 10, W, 34 end
 

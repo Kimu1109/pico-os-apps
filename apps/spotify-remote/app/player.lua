@@ -1,5 +1,7 @@
 -- 再生の状態を数秒ごとに取りに行き、操作(再生/停止・次へ・前へ・シーク・音量・シャッフル・リピート・端末)を送る。
 -- 状態は P.st に置き、画面を描き直してほしいときは P.dirty を立てる(描くのは view.lua)。
+-- ジャケットの欄も描き直すときだけ P.art_dirty も立てる(ジャケットはフルカラーで描くたびにSDから解き直し、
+-- そのとき液晶が少しちらつくので、3秒ごとの取り直しや操作では描き直さない)。
 local A = require("api")
 local P = {}
 
@@ -8,6 +10,7 @@ P.st = nil          -- 再生の状態(nil = 再生中の端末が無い/まだ�
 P.msg = ""          -- 下の欄の1行
 P.msg_err = false
 P.dirty = true
+P.art_dirty = true
 P.art = nil         -- ジャケット画像のハンドル
 
 local POLL_MS = 3000      -- 再生中・止めているときの取り直しの間隔
@@ -103,6 +106,7 @@ local function update_art(url)
         free_art()
         art_url = nil
         P.dirty = true
+        P.art_dirty = true
         return
     end
     art_loading = url
@@ -113,6 +117,7 @@ local function update_art(url)
         -- full_color: Canvas で描くと、16色の絵の上にSDから解きながら液晶へそのままの色で描かれる
         if ok then P.art = pico.image_load(art_path(), { max_w = P.ART, max_h = P.ART, full_color = true }) end
         P.dirty = true
+        P.art_dirty = true
     end)
 end
 
@@ -311,6 +316,7 @@ function P.reset()
     vol_pending = nil
     next_poll = 0
     P.dirty = true
+    P.art_dirty = true
 end
 
 function P.close()
