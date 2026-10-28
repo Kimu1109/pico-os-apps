@@ -208,7 +208,13 @@ function loop()
     P.update()
     if P.dirty then
         P.dirty = false
-        pico.invalidate(canvas)
+        if P.art_dirty or not logged_in then
+            P.art_dirty = false
+            pico.invalidate(canvas)
+        else
+            -- ジャケットは変わっていない: その欄にかからない所だけ描き直す(SDから解き直さない)
+            for _, r in ipairs(V.rects_except_art()) do pico.mark_dirty(r[1], r[2], r[3], r[4]) end
+        end
         shown_sec = P.st and (P.position() // 1000) or -1
     end
     -- 再生中は1秒ごとに再生位置の欄だけ描き直す
