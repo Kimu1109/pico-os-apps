@@ -110,7 +110,8 @@ local function on_press_move(_, x, y)
     local name, v = V.hit(x, y, logged_in)
     if name == V.drag.kind or v then
         V.drag.v = v or V.drag.v
-        redraw()
+        -- 動かしている欄だけ描き直す(ジャケットをSDから解き直さない)
+        pico.mark_dirty((V.drag.kind == "seek" and V.progress_rect or V.volume_rect)())
     end
 end
 
