@@ -110,7 +110,8 @@ local function update_art(url)
         art_loading = nil
         free_art()
         art_url = url
-        if ok then P.art = pico.image_load(art_path(), { max_w = P.ART, max_h = P.ART }) end
+        -- full_color: Canvas で描くと、16色の絵の上にSDから解きながら液晶へそのままの色で描かれる
+        if ok then P.art = pico.image_load(art_path(), { max_w = P.ART, max_h = P.ART, full_color = true }) end
         P.dirty = true
     end)
 end

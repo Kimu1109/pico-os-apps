@@ -139,6 +139,9 @@ local function draw_controls(s)
     if rep ~= "off" then pico.fill_circle(x, y + 14, 2, DKGREEN) end
 end
 
+-- 音量の欄(つまみを動かしている間はここだけ描き直す)
+function V.volume_rect() return X, VOL_Y - 12, W, 24 end
+
 local function draw_volume(s)
     local can = s and s.can_volume
     local c = can and BLACK or LTGREY
