@@ -57,8 +57,8 @@ local faces = pico.image_load(pico.path_join(DIR, "faces.pimg"))
 local units = pico.image_load(pico.path_join(DIR, "units.pimg"))
 -- faces.pimg は使うブロックの段だけを並べてある(script/assets/generate_zombie_td_sheet.py の FACE_ROWS と同じ並び。26 = カーソル)
 local FACE_ROWS = { 1, 2, 3, 4, 5, 11, 12, 14, 15, 16, 18, 22, 26 }
-if faces then iso.set_image(faces, FACE_ROWS) else pico.show_error("faces.pimg を読めません") end
-if not units then pico.show_error("units.pimg を読めません") end
+if faces then iso.set_image(faces, FACE_ROWS) else pico.show_error(pico.tr("faces.pimg を読めません")) end
+if not units then pico.show_error(pico.tr("units.pimg を読めません")) end
 local MAP_DIR = pico.path_join(DIR, "map")   -- 何も書かない(地形は種から作るので保存しない)
 
 local CX, CY, CW, CH = pico.content_rect()
@@ -161,7 +161,7 @@ end
 local function gen_fail(msg)
     mem_log("失敗")
     pico.show_error(msg)
-    load_msg = "作れませんでした(「他」でやり直し)"
+    load_msg = pico.tr("作れませんでした(「他」でやり直し)")
     stage = nil
     pico.invalidate(view)
 end
@@ -183,15 +183,15 @@ local function gen_start()
     G.base = false
     local bx, by, bz = iso.create(MAP_DIR, 4, G.seed, W_CHUNKS)
     G.mode = "load"
-    if not bx then return gen_fail("マップを作れません: " .. tostring(by)) end
+    if not bx then return gen_fail(pico.tr("マップを作れません: ") .. tostring(by)) end
     W = iso.size()
     if not iso.keep_all(true) then
         iso.close()
-        return gen_fail("マップを作れません: メモリが足りません")
+        return gen_fail(pico.tr("マップを作れません: メモリが足りません"))
     end
     arena = iso.arena()
     center_on(bx, by, bz)
-    load_msg = "マップを作っています..."
+    load_msg = pico.tr("マップを作っています...")
     stage = "pump"
     pico.invalidate(view)
     pico.invalidate(hud)
@@ -221,8 +221,8 @@ local function game_over()
     local best = save.load().best
     save.write(nil, score)
     local nb = save.load().best or score
-    over_text = string.format("耐えたウェーブ %d (最高 %d)%s", score.w, nb.w,
-        save.better(score, best) and score.w > 0 and " 新記録!" or "")
+    over_text = string.format(pico.tr("耐えたウェーブ %d (最高 %d)%s"), score.w, nb.w,
+        save.better(score, best) and score.w > 0 and pico.tr(" 新記録!") or "")
     pico.invalidate(view)
     tutorial.stop()
     sfx.game_over()
@@ -273,17 +273,17 @@ local function gen_step()
     if stage == "pump" then
         iso.pump(64, 30)
         if iso.pending() == 0 then
-            load_msg = "道を調べています..."
+            load_msg = pico.tr("道を調べています...")
             pico.invalidate(view)
             mem_log("チャンクを読み込んだ")
             local ok, err = iso.flow_build(goals_around(arena.base.x, arena.base.z), FLOW_RULES)
-            if not ok then return gen_fail("道を作れません: " .. tostring(err)) end
+            if not ok then return gen_fail(pico.tr("道を作れません: ") .. tostring(err)) end
             stage = "flow"
         end
     elseif stage == "flow" then
         local done = iso.flow_step(4000)
         local info = iso.flow_info()
-        if info.failed then return gen_fail("道を作れません: メモリが足りません") end
+        if info.failed then return gen_fail(pico.tr("道を作れません: メモリが足りません")) end
         if done then
             -- 出現位置のどれかからベースへ届かない種は使わない
             local ok = true
@@ -309,7 +309,7 @@ end
 local function next_wave()
     if G.mode ~= "play" or waves.phase ~= "prep" then return end
     local bonus = waves.skip()
-    if bonus > 0 then G.add_money(bonus, true); G.say(string.format("早く呼んだ +$%d", bonus)) end
+    if bonus > 0 then G.add_money(bonus, true); G.say(string.format(pico.tr("早く呼んだ +$%d"), bonus)) end
 end
 
 local function wave_event(ev)
@@ -317,11 +317,11 @@ local function wave_event(ev)
         save_game()                         -- ウェーブ中に閉じたら、ここからやり直す
         waves.start(zombies)
         sfx.wave_start()
-        G.say(string.format("ウェーブ %d!", waves.n))
+        G.say(string.format(pico.tr("ウェーブ %d!"), waves.n))
     elseif ev == "clear" then
         local bonus = waves.bonus(waves.n - 1)
         G.add_money(bonus, true)
-        G.say(string.format("ウェーブ %d を越えた +$%d", waves.n - 1, bonus))
+        G.say(string.format(pico.tr("ウェーブ %d を越えた +$%d"), waves.n - 1, bonus))
         sfx.wave_clear()
         save_game()
     end
@@ -350,17 +350,17 @@ pico.on(hud, "render", function()
     pico.fill_rect(CX, CY, CW, HUD_H, PAL.dark)
     local base = G.base
     if G.mode == "load" or not base then
-        pico.draw_text(CX + 4, CY + 2, "種 " .. G.seed, 15, 0)
+        pico.draw_text(CX + 4, CY + 2, pico.tr("種 ") .. G.seed, 15, 0)
         return
     end
-    pico.draw_text(CX + 2, CY + 2, string.format("基%d", math.max(0, math.floor(base.hp))), base.hp > BASE_HP // 4 and 15 or 12, 0)
+    pico.draw_text(CX + 2, CY + 2, string.format(pico.tr("基%d"), math.max(0, math.floor(base.hp))), base.hp > BASE_HP // 4 and 15 or 12, 0)
     pico.draw_text(CX + 58, CY + 2, string.format("$%d", G.money), 14, 0)
     if waves.phase == "prep" and G.mode == "play" then
-        pico.draw_text(CX + 106, CY + 2, string.format("W%dまで%d", waves.n, math.ceil(waves.timer)), 10, 0)
+        pico.draw_text(CX + 106, CY + 2, string.format(pico.tr("W%dまで%d"), waves.n, math.ceil(waves.timer)), 10, 0)
         box(CX + NEXT_X, CY + 1, 40, HUD_H - 2, nil)
-        pico.draw_text(CX + NEXT_X + 20, CY + 2, "次へ", 0, 0, "center")
+        pico.draw_text(CX + NEXT_X + 20, CY + 2, pico.tr("次へ"), 0, 0, "center")
     else
-        pico.draw_text(CX + 106, CY + 2, string.format("W%d 残%d", waves.n, zombies.alive() + zombies.waiting()), 15, 0)
+        pico.draw_text(CX + 106, CY + 2, string.format(pico.tr("W%d 残%d"), waves.n, zombies.alive() + zombies.waiting()), 15, 0)
         pico.draw_text(CX + CW - 2, CY + 2, string.format("%.0ffps", perf.fps), 8, 0, "right")
     end
 end)
@@ -400,9 +400,9 @@ pico.on(view, "render", function()
     end
     if G.mode == "over" then
         box(CX + 10, VY + VH // 2 - 38, CW - 20, 76)
-        pico.draw_text(CX + CW // 2, VY + VH // 2 - 32, "ベースが壊れました", 12, 0, "center")
+        pico.draw_text(CX + CW // 2, VY + VH // 2 - 32, pico.tr("ベースが壊れました"), 12, 0, "center")
         pico.draw_text(CX + CW // 2, VY + VH // 2 - 10, over_text or "", 0, 0, "center")
-        pico.draw_text(CX + CW // 2, VY + VH // 2 + 12, "タップかAで新しく始める", 0, 0, "center")
+        pico.draw_text(CX + CW // 2, VY + VH // 2 + 12, pico.tr("タップかAで新しく始める"), 0, 0, "center")
     end
     ui.menu_draw()
 end)
@@ -533,7 +533,7 @@ function loop(dt)
             if G.flow_dirty then
                 G.flow_dirty = false
                 local ok, err = iso.flow_build(goals_around(arena.base.x, arena.base.z), FLOW_RULES)
-                if not ok then G.say("道を作り直せません: " .. tostring(err)); G.flow_retry = 2 end
+                if not ok then G.say(pico.tr("道を作り直せません: ") .. tostring(err)); G.flow_retry = 2 end
             end
             local fi = iso.flow_info()
             if fi.building then iso.flow_step(800)
@@ -574,7 +574,7 @@ sfx.on = saved.snd ~= false
 if saved.game and saved.game.seed then
     -- 途中の保存があれば、続きからか新しく始めるかを選ぶ(閉じた/キャンセルは続きから。うっかり保存を失わないように)
     local game = saved.game
-    ui.menu("ゾンビTD", { string.format("続きから W%d", game.w or 1), "新しく始める" },
+    ui.menu(pico.tr("ゾンビTD"), { string.format(pico.tr("続きから W%d"), game.w or 1), pico.tr("新しく始める") },
         function(i) if i == 2 then new_game() else new_map(game.seed, game) end end,
         function() new_map(game.seed, game) end)
     saved = nil

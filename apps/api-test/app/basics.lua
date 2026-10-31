@@ -34,8 +34,8 @@ pico.set(tabs, "x", x)
 pico.set(tabs, "y", y)
 pico.set(tabs, "w", w)
 pico.set(tabs, "h", 26)
-pico.tab_add(tabs, "入力")
-pico.tab_add(tabs, "図形")
+pico.tab_add(tabs, pico.tr("入力"))
+pico.tab_add(tabs, pico.tr("図形"))
 
 local function link(index, ...)
     for _, id in ipairs({ ... }) do pico.tab_link(tabs, index, id) end
@@ -48,8 +48,8 @@ pico.set(textbox, "y", top)
 pico.set(textbox, "max_width", w - m * 2)
 pico.set(textbox, "max_height", 26)
 pico.set(textbox, "is_single_line", true)
-pico.set(textbox, "placeholder", "タップして入力")
-local text_label = label("text: (未入力)", x + m, top + 30)
+pico.set(textbox, "placeholder", pico.tr("タップして入力"))
+local text_label = label(pico.tr("text: (未入力)"), x + m, top + 30)
 pico.on(textbox, "text_changed", function(id)
     pico.set(text_label, "text", "text: " .. pico.get(id, "text"))
 end)
@@ -57,12 +57,12 @@ end)
 local number = pico.create("NumberInput")
 pico.set(number, "x", x + m)
 pico.set(number, "y", top + 54)
-local number_label = label("数: ", x + m + 72, top + 58)
+local number_label = label(pico.tr("数: "), x + m + 72, top + 58)
 
 local checkbox = pico.create("Checkbox")
 pico.set(checkbox, "x", x + m)
 pico.set(checkbox, "y", top + 126)
-pico.set(checkbox, "text", "チェック")
+pico.set(checkbox, "text", pico.tr("チェック"))
 local check_label = label("checked: false", x + 130, top + 130)
 pico.on(checkbox, "checked_changed", function(id)
     pico.set(check_label, "text", "checked: " .. tostring(pico.get(id, "checked")))
@@ -76,20 +76,20 @@ pico.set(container, "w", w - m * 2)
 pico.set(container, "h", 24)
 local child = nil
 local toggle
-toggle = button("子を追加", x + m, top + 186, 110, function()
+toggle = button(pico.tr("子を追加"), x + m, top + 186, 110, function()
     if child == nil then
         child = pico.create("Label")
-        pico.set(child, "text", "追加された子")
+        pico.set(child, "text", pico.tr("追加された子"))
         pico.add_child(container, child)
-        pico.set(toggle, "text", "子を外す")
+        pico.set(toggle, "text", pico.tr("子を外す"))
     else
         pico.remove_child(container, child)
         pico.destroy(child)
         child = nil
-        pico.set(toggle, "text", "子を追加")
+        pico.set(toggle, "text", pico.tr("子を追加"))
     end
 end)
-local beep = button("テスト音", x + 130, top + 186, 100, function() pico.beep(880, 300) end)
+local beep = button(pico.tr("テスト音"), x + 130, top + 186, 100, function() pico.beep(880, 300) end)
 
 -- ---- 図形 ----
 local shapes = {}
@@ -110,7 +110,7 @@ shape("Triangle", { x1 = x + m + 140, y1 = top + 90, x2 = x + m + 160, y2 = top 
                     x3 = x + m + 180, y3 = top + 90, color = 8, filled = false, thickness = 2 })
 -- x/y は形全体の平行移動
 local moved = false
-local move = button("x/yで平行移動", x + m, top + 120, 140, function()
+local move = button(pico.tr("x/yで平行移動"), x + m, top + 120, 140, function()
     local dy = moved and -20 or 20
     pico.set(line, "y", pico.get(line, "y") + dy)
     pico.set(tri, "y", pico.get(tri, "y") + dy)
@@ -126,12 +126,12 @@ local dropdown = pico.create("DropdownMenu")
 pico.set(dropdown, "x", x + m)
 pico.set(dropdown, "y", top + 86)
 pico.set(dropdown, "w", 120)
-pico.list_add(dropdown, "りんご")
-pico.list_add(dropdown, "みかん")
-pico.list_add(dropdown, "ぶどう")
-local dropdown_label = label("未選択", x + 140, top + 94)
+pico.list_add(dropdown, pico.tr("りんご"))
+pico.list_add(dropdown, pico.tr("みかん"))
+pico.list_add(dropdown, pico.tr("ぶどう"))
+local dropdown_label = label(pico.tr("未選択"), x + 140, top + 94)
 pico.on(dropdown, "dropdown_changed", function(id)
-    pico.set(dropdown_label, "text", "選択: " .. pico.get(id, "selected_index"))
+    pico.set(dropdown_label, "text", pico.tr("選択: ") .. pico.get(id, "selected_index"))
 end)
 
 link(0, textbox, text_label, number, number_label, checkbox, check_label, container, toggle, beep,
@@ -144,6 +144,6 @@ function loop()
     local n = pico.get(number, "text")
     if n ~= last_num then
         last_num = n
-        pico.set(number_label, "text", "数: " .. n)
+        pico.set(number_label, "text", pico.tr("数: ") .. n)
     end
 end

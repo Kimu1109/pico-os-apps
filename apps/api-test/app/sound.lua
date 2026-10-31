@@ -27,15 +27,15 @@ end
 pico.set(button(cx + 2, cy + 2, 40, "", function() pico.pop() end), "icon_id", 30)  -- ArrowLeft
 
 local wave_btn
-wave_btn = button(cx + 46, cy + 2, 104, "波形: " .. WAVES[wave_index], function()
+wave_btn = button(cx + 46, cy + 2, 104, pico.tr("波形: ") .. WAVES[wave_index], function()
     wave_index = wave_index % #WAVES + 1
-    pico.set(wave_btn, "text", "波形: " .. WAVES[wave_index])
+    pico.set(wave_btn, "text", pico.tr("波形: ") .. WAVES[wave_index])
 end)
 
 local decay_btn
-decay_btn = button(cx + 154, cy + 2, cw - 156, "減衰: あり", function()
+decay_btn = button(cx + 154, cy + 2, cw - 156, pico.tr("減衰: あり"), function()
     decay = not decay
-    pico.set(decay_btn, "text", decay and "減衰: あり" or "減衰: なし")
+    pico.set(decay_btn, "text", decay and pico.tr("減衰: あり") or pico.tr("減衰: なし"))
 end)
 
 -- "h"は影を含むボタン全体の高さ。そこから1px空けて下を並べる
@@ -95,7 +95,7 @@ end)
 local note_label = pico.create("Label")
 pico.set(note_label, "x", cx + 4); pico.set(note_label, "y", KEY_TOP + KEY_H + 6)
 pico.set(note_label, "font_size", 0)
-pico.set(note_label, "text", "鍵盤を押すと鳴ります")
+pico.set(note_label, "text", pico.tr("鍵盤を押すと鳴ります"))
 
 local function playKey(note)
     if note == pressed_note then return end
@@ -126,14 +126,14 @@ pico.on(keys, "press_out", function() playKey(nil) end)
 -- 曲は2コア目のシーケンサーが鳴らすので、ここでは始めて/止めるだけ(テンポも揺れない)
 local song_btn
 local function refreshSongButton()
-    pico.set(song_btn, "text", pico.music_playing() and "デモ曲を止める" or "デモ曲を再生")
+    pico.set(song_btn, "text", pico.music_playing() and pico.tr("デモ曲を止める") or pico.tr("デモ曲を再生"))
 end
-song_btn = button(cx + 2, KEY_TOP + KEY_H + 26, 130, "デモ曲を再生", function()
+song_btn = button(cx + 2, KEY_TOP + KEY_H + 26, 130, pico.tr("デモ曲を再生"), function()
     if pico.music_playing() then
         pico.music_stop()
     else
         local ok, err = pico.music_play(pico.path_join(pico.app_dir(), "demo.mml"))
-        if not ok then pico.show_error("デモ曲を読めません\n" .. err) end
+        if not ok then pico.show_error(pico.tr("デモ曲を読めません\n") .. err) end
     end
     refreshSongButton()
 end)
@@ -143,8 +143,8 @@ function loop(dt)
     status_timer = status_timer + dt
     if status_timer >= 500 then
         status_timer = 0
-        pico.set(status, "text", pico.sound_available() and "音: 鳴らせます"
-                                   or "音: アンプ未接続(鳴りません)")
+        pico.set(status, "text", pico.sound_available() and pico.tr("音: 鳴らせます")
+                                   or pico.tr("音: アンプ未接続(鳴りません)"))
         refreshSongButton()
     end
 end

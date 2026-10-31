@@ -1,0 +1,20 @@
+-- 電池テスト の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+return {
+    ["高負荷"] = "High",
+    ["全面描画+計算"] = "Redraw + compute",
+    ["中負荷"] = "Mid",
+    ["1秒ごと更新"] = "Update every 1s",
+    ["低負荷"] = "Low",
+    ["放置(スリープ可)"] = "Idle (can sleep)",
+    ["前回 %s"] = "Last %s",
+    ["電池 -"] = "Battery -",
+    ["電池 %d%% %.2fV"] = "Battery %d%% %.2fV",
+    ["USB給電中! 外して測る"] = "On USB power! Unplug to measure",
+    ["%s 測定中(run %s)"] = "%s measuring (run %s)",
+    ["停止しました(%s %s)"] = "Stopped (%s %s)",
+    ["電池テスト"] = "BATTERY TEST",
+    ["測る負荷を選んで開始"] = "Pick a load and start",
+    ["停止"] = "Stop",
+    ["戻る"] = "Back",
+    ["高負荷 run %s"] = "High load run %s",
+}

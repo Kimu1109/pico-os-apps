@@ -112,9 +112,9 @@ g:state("title", {
         if g:pressed("a") or g:pressed("start") or g.touch.pressed then g:go("play") end
     end,
     draw = function()
-        center_text("ジャンプアクション", 70, 1)
-        center_text("Aかタップで始める", 110, 1, 0)
-        if best > 0 then center_text("ハイスコア " .. best, 134, 1, 0) end
+        center_text(pico.tr("ジャンプアクション"), 70, 1)
+        center_text(pico.tr("Aかタップで始める"), 110, 1, 0)
+        if best > 0 then center_text(pico.tr("ハイスコア %s", best), 134, 1, 0) end
     end,
 })
 
@@ -164,7 +164,7 @@ g:state("clear", {
         player.vx = 0
         g:after(2.5, function() g:go("title") end)
     end,
-    draw = function() center_text("ゴール!", 90, 14, 2) end,
+    draw = function() center_text(pico.tr("ゴール!"), 90, 14, 2) end,
 })
 
 g:state("over", {
@@ -172,7 +172,7 @@ g:state("over", {
         best = math.max(best, score)
         g:after(2.5, function() g:go("title") end)
     end,
-    draw = function() center_text("ゲームオーバー", 90, 12, 2) end,
+    draw = function() center_text(pico.tr("ゲームオーバー"), 90, 12, 2) end,
 })
 
 -- 点数と残り(キャンバスの左上へ。中身が変わったらhud_dirty()で描き直す)

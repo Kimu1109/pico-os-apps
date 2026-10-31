@@ -40,7 +40,7 @@ local status = pico.create("Label")
 pico.set(status, "x", X + 4)
 pico.set(status, "y", Y + BTN_H + 2)
 pico.set(status, "font_size", 0)
-pico.set(status, "text", "「全部」で測り始めます")
+pico.set(status, "text", pico.tr("「全部」で測り始めます"))
 
 local view = pico.create("TextView")
 pico.set(view, "x", X)
@@ -111,44 +111,44 @@ local function test_lua()
     local t0 = pico.micros()
     local s = 0
     for i = 1, 100000 do s = s + i end
-    out("整数の足し算 10万回: %s", ms(us(t0)))
+    out(pico.tr("整数の足し算 10万回: %s"), ms(us(t0)))
     coroutine.yield()
 
     t0 = pico.micros()
     local f = 0.0
     for i = 1, 20000 do f = f + math.sin(i * 0.001) * 1.5 end
-    out("sin+掛け算 2万回: %s", ms(us(t0)))
+    out(pico.tr("sin+掛け算 2万回: %s"), ms(us(t0)))
     coroutine.yield()
 
     t0 = pico.micros()
     local t = {}
     for i = 1, 2000 do t[i] = i end
-    out("表へ追加 2000件: %s", ms(us(t0)))
+    out(pico.tr("表へ追加 2000件: %s"), ms(us(t0)))
     coroutine.yield()
 
     t0 = pico.micros()
     local parts = {}
     for i = 1, 2000 do parts[i] = tostring(i) end
     local joined = table.concat(parts, ",")
-    out("文字列 2000個→連結(%dB): %s", #joined, ms(us(t0)))
+    out(pico.tr("文字列 2000個→連結(%dB): %s"), #joined, ms(us(t0)))
     t, parts, joined = nil, nil, nil
     coroutine.yield()
 
     t0 = pico.micros()
     collectgarbage("collect")
-    out("ごみ集め(全部): %s  Lua %dKB", ms(us(t0)), math.floor(collectgarbage("count")))
+    out(pico.tr("ごみ集め(全部): %s  Lua %dKB"), ms(us(t0)), math.floor(collectgarbage("count")))
     coroutine.yield()
 end
 
 local function test_draw()
-    out("== 描画(renderの中だけ) ==")
+    out(pico.tr("== 描画(renderの中だけ) =="))
     pico.set(view, "visible", false)
     pico.set(canvas, "visible", true)
 
     local r = timed_render(function()
         for i = 1, 10 do pico.fill_rect(X, BODY_Y, W, BODY_H, i % 14 + 1) end
     end)
-    if r then out("全面fill_rect x10: %s (1回 %s)", ms(r), ms(r // 10)) end
+    if r then out(pico.tr("全面fill_rect x10: %s (1回 %s)"), ms(r), ms(r // 10)) end
 
     r = timed_render(function()
         pico.fill_rect(X, BODY_Y, W, BODY_H, 15)
@@ -160,13 +160,13 @@ local function test_draw()
         pico.fill_rect(X, BODY_Y, W, BODY_H, 15)
         for i = 1, 100 do pico.draw_line(X, BODY_Y + i * 2, X + W - 1, BODY_Y + BODY_H - i * 2, i % 14 + 1) end
     end)
-    if r then out("draw_line 全幅 x100: %s", ms(r)) end
+    if r then out(pico.tr("draw_line 全幅 x100: %s"), ms(r)) end
 
     r = timed_render(function()
         pico.fill_rect(X, BODY_Y, W, BODY_H, 15)
         for i = 0, 29 do pico.draw_text(X + 2, BODY_Y + (i % 15) * 18, "日本語の文字ABC123", 0, 16) end
     end)
-    if r then out("draw_text 16px 9文字 x30: %s", ms(r)) end
+    if r then out(pico.tr("draw_text 16px 9文字 x30: %s"), ms(r)) end
 
     if image then
         local iw, ih = pico.image_size(image)
@@ -177,7 +177,7 @@ local function test_draw()
         if r then out("draw_image %dx%d x100: %s", iw, ih, ms(r)) end
     end
 
-    out("== 転送(全面の描き直し 60フレーム) ==")
+    out(pico.tr("== 転送(全面の描き直し 60フレーム) =="))
     local frames, worst = 0, 0
     local last = nil
     local t0 = pico.micros()
@@ -192,7 +192,7 @@ local function test_draw()
     end
     local total = us(t0)
     draw_job = nil
-    out("%dx%d: 平均 %s/フレーム (%.1ffps) 最大 %s", W, BODY_H, ms(total // frames), frames * 1e6 / total, ms(worst))
+    out(pico.tr("%dx%d: 平均 %s/フレーム (%.1ffps) 最大 %s"), W, BODY_H, ms(total // frames), frames * 1e6 / total, ms(worst))
 
     pico.set(canvas, "visible", false)
     pico.set(view, "visible", true)
@@ -205,32 +205,32 @@ local function test_sd()
     local data = string.rep("0123456789abcdef", 1024)  -- 16KiB
     local t0 = pico.micros()
     local ok = pico.sd_write(TMP_FILE, data)
-    out("書き込み 16KiB: %s %s", ms(us(t0)), ok and "" or "(失敗)")
+    out(pico.tr("書き込み 16KiB: %s %s"), ms(us(t0)), ok and "" or pico.tr("(失敗)"))
     coroutine.yield()
 
     t0 = pico.micros()
     local back = pico.sd_read(TMP_FILE)
-    out("読み込み 16KiB: %s %s", ms(us(t0)), back == data and "" or "(中身が違う)")
+    out(pico.tr("読み込み 16KiB: %s %s"), ms(us(t0)), back == data and "" or pico.tr("(中身が違う)"))
     coroutine.yield()
 
     t0 = pico.micros()
     for i = 1, 20 do pico.sd_write(TMP_FILE, "line\n", true) end
-    out("追記 5B x20: %s", ms(us(t0)))
+    out(pico.tr("追記 5B x20: %s"), ms(us(t0)))
     coroutine.yield()
 
     t0 = pico.micros()
     pico.settings_set("bench", pico.millis())
-    out("settings_set 1回: %s", ms(us(t0)))
+    out(pico.tr("settings_set 1回: %s"), ms(us(t0)))
     pico.sd_remove(TMP_FILE)
     coroutine.yield()
 end
 
 local function test_crypto()
-    out("== 暗号 ==")
+    out(pico.tr("== 暗号 =="))
     local plain = string.rep("secret", 100)
     local t0 = pico.micros()
     local c = pico.encrypt(plain)
-    out("encrypt 600B(固定鍵): %s", ms(us(t0)))
+    out(pico.tr("encrypt 600B(固定鍵): %s"), ms(us(t0)))
     coroutine.yield()
 
     local before = pico.memory_info()
@@ -240,8 +240,8 @@ local function test_crypto()
     coroutine.yield()
     t0 = pico.micros()
     local p = pico.decrypt(c, "password-1234")
-    out("encrypt/decrypt パスワード(Argon2id): %s / %s %s", ms(enc), ms(us(t0)), p == plain and "" or "(戻らない)")
-    out("  その前の heap_free=%d", before.heap_free or -1)
+    out(pico.tr("encrypt/decrypt パスワード(Argon2id): %s / %s %s"), ms(enc), ms(us(t0)), p == plain and "" or pico.tr("(戻らない)"))
+    out(pico.tr("  その前の heap_free=%d"), before.heap_free or -1)
     coroutine.yield()
 
     t0 = pico.micros()
@@ -256,11 +256,11 @@ local function test_json()
     for i = 1, 200 do items[i] = { id = i, name = "item" .. i, v = i * 0.5, ok = (i % 2 == 0) } end
     local t0 = pico.micros()
     local text = pico.json_encode(items)
-    out("encode 200件(%dB): %s", #text, ms(us(t0)))
+    out(pico.tr("encode 200件(%dB): %s"), #text, ms(us(t0)))
     coroutine.yield()
     t0 = pico.micros()
     local back = pico.json_decode(text)
-    out("decode: %s %s", ms(us(t0)), (back and #back == 200) and "" or "(失敗)")
+    out("decode: %s %s", ms(us(t0)), (back and #back == 200) and "" or pico.tr("(失敗)"))
     coroutine.yield()
 end
 
@@ -268,7 +268,7 @@ local function test_https()
     out("== HTTPS ==")
     local wifi = pico.wifi_status()
     if not wifi.connected then
-        out("Wi-Fiに繋がっていないので飛ばします")
+        out(pico.tr("Wi-Fiに繋がっていないので飛ばします"))
         return
     end
     out("GET %s", TLS_URL)
@@ -279,26 +279,26 @@ local function test_https()
         result = { ok = ok, code = code, err = err, size = body and #body or 0 }
         done = true
     end)
-    if not id then out("始められませんでした"); return end
+    if not id then out(pico.tr("始められませんでした")); return end
     while not done do
         coroutine.yield()
         local now = pico.micros()
         worst = math.max(worst, now - last)
         last = now
-        if now - t0 > 30000000 then pico.http_cancel(id); out("30秒で打ち切り"); return end
+        if now - t0 > 30000000 then pico.http_cancel(id); out(pico.tr("30秒で打ち切り")); return end
     end
     if result.ok then
-        out("status=%s %dB: %s  一番長く止まったフレーム %s", tostring(result.code), result.size, ms(us(t0)), ms(worst))
+        out(pico.tr("status=%s %dB: %s  一番長く止まったフレーム %s"), tostring(result.code), result.size, ms(us(t0)), ms(worst))
     else
-        out("失敗: %s (%s)", tostring(result.err), ms(us(t0)))
+        out(pico.tr("失敗: %s (%s)"), tostring(result.err), ms(us(t0)))
     end
     coroutine.yield()
 end
 
 local function test_memory()
-    out("== メモリ ==")
+    out(pico.tr("== メモリ =="))
     local m = pico.memory_info()
-    out("Lua %d/%dKB  画像 %dB", (m.lua_used or 0) // 1024, (m.lua_budget or 0) // 1024, m.image_bytes or 0)
+    out(pico.tr("Lua %d/%dKB  画像 %dB"), (m.lua_used or 0) // 1024, (m.lua_budget or 0) // 1024, m.image_bytes or 0)
     out("heap free=%d used=%d headroom=%d", m.heap_free or -1, m.heap_used or -1, m.heap_headroom or -1)
     if m.heap_room then out("heap room=%d refused=%d", m.heap_room, m.heap_refused or 0) end
 end
@@ -311,8 +311,8 @@ local function header()
     local t = pico.get_time()
     local b = { pico.battery() }
     out("---- %04d-%02d-%02d %02d:%02d ----", t.year, t.month, t.day, t.hour, t.min)
-    if b[1] then out("電池 %d%% %s", b[1], b[3] and "USB給電" or "電池駆動") end
-    out("音 %dHz / 起動から %ds", pico.sound_rate(), pico.millis() // 1000)
+    if b[1] then out(pico.tr("電池 %d%% %s"), b[1], b[3] and pico.tr("USB給電") or pico.tr("電池駆動")) end
+    out(pico.tr("音 %dHz / 起動から %ds"), pico.sound_rate(), pico.millis() // 1000)
 end
 
 local function start(tests)
@@ -322,7 +322,7 @@ local function start(tests)
     runner = coroutine.create(function()
         header()
         for i, t in ipairs(tests) do
-            pico.set(status, "text", string.format("測っています %d/%d", i, #tests))
+            pico.set(status, "text", string.format(pico.tr("測っています %d/%d"), i, #tests))
             t()
         end
     end)
@@ -330,8 +330,8 @@ end
 
 local ALL = { test_lua, test_draw, test_sd, test_crypto, test_json, test_https, test_memory }
 
-button("全部", X + 2, 70, function() start(ALL) end)
-button("描画", X + 76, 70, function() start({ test_draw }) end)
+button(pico.tr("全部"), X + 2, 70, function() start(ALL) end)
+button(pico.tr("描画"), X + 76, 70, function() start({ test_draw }) end)
 pico.set(button("", X + W - 72, 70, function() pico.pop() end), "icon_id", 30)  -- ArrowLeft
 pico.on_back(function() pico.pop() end)
 
@@ -340,17 +340,17 @@ function loop(dt)
     pico.keep_awake()
     local ok, err = coroutine.resume(runner)
     if not ok then
-        out("エラー: %s", tostring(err))
+        out(pico.tr("エラー: %s"), tostring(err))
         runner = nil
         pico.set(canvas, "visible", false)
         pico.set(view, "visible", true)
-        pico.set(status, "text", "エラーで止まりました")
+        pico.set(status, "text", pico.tr("エラーで止まりました"))
         return
     end
     if coroutine.status(runner) == "dead" then
         runner = nil
-        out("(%d秒)", (pico.millis() - started_ms) // 1000)
+        out(pico.tr("(%d秒)"), (pico.millis() - started_ms) // 1000)
         local saved = pico.sd_write(RESULT_FILE, table.concat(lines, "\n") .. "\n\n", true)
-        pico.set(status, "text", saved and "終わりました(results.txt へ追記)" or "終わりました(保存に失敗)")
+        pico.set(status, "text", saved and pico.tr("終わりました(results.txt へ追記)") or pico.tr("終わりました(保存に失敗)"))
     end
 end

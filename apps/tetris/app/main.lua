@@ -328,7 +328,7 @@ local function setPause(on)
     else
         return
     end
-    pause_btn.label = on and "再開" or "停止"
+    pause_btn.label = on and pico.tr("再開") or pico.tr("停止")
     g:dirty(pause_btn.x, pause_btn.y, pause_btn.w, pause_btn.h)
 end
 
@@ -393,7 +393,7 @@ end
 
 g:state("title", {
     update = function() if startKey() then newGame() end end,
-    draw = function(_, ox, oy) box(ox, oy, "テトリス", "タップで開始") end,
+    draw = function(_, ox, oy) box(ox, oy, pico.tr("テトリス"), pico.tr("タップで開始")) end,
 })
 g:state("play", {
     update = function(_, dt)
@@ -402,7 +402,7 @@ g:state("play", {
 })
 g:state("pause", {
     update = function() if startKey() then setPause(false) end end,
-    draw = function(_, ox, oy) box(ox, oy, "一時停止中", "タップで再開") end,
+    draw = function(_, ox, oy) box(ox, oy, pico.tr("一時停止中"), pico.tr("タップで再開")) end,
 })
 g:state("clear", {
     update = function(_, dt)
@@ -412,7 +412,7 @@ g:state("clear", {
 })
 g:state("over", {
     update = function() if startKey() then newGame() end end,
-    draw = function(_, ox, oy) box(ox, oy, "GAME OVER", "タップでもう一度") end,
+    draw = function(_, ox, oy) box(ox, oy, "GAME OVER", pico.tr("タップでもう一度")) end,
 })
 
 -- 毎フレーム(状態ごとの update の後): 見た目へ写す
@@ -443,7 +443,7 @@ for i, n in ipairs({ "left", "down", "right", "up", "b", "a" }) do
         LIB.drawBtn(n, x, y, w, h, on)
     end }
 end
-pause_btn = g:button{ name = "pause", x = SX, y = SH + 6, w = 50, h = 30, label = "停止" }
+pause_btn = g:button{ name = "pause", x = SX, y = SH + 6, w = 50, h = 30, label = pico.tr("停止") }
 g:button{ name = "back", x = SX + 54, y = SH + 6, w = 50, h = 30, label = "left" }
 
 for i = 1, W * (H + HID) do grid[i] = 0 end

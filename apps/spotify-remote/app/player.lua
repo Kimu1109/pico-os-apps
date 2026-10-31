@@ -84,11 +84,11 @@ local function parse(r)
     s.can_volume = r["device.supports_volume"] ~= false and s.volume ~= nil
     local a1, a2 = r["item.artists.1.name"], r["item.artists.2.name"]
     if a1 then
-        s.artist = a2 and (a1 .. ", " .. a2 .. ((r["item.artists#"] or 0) > 2 and " ほか" or "")) or a1
+        s.artist = a2 and (a1 .. ", " .. a2 .. ((r["item.artists#"] or 0) > 2 and pico.tr(" ほか") or "")) or a1
     else
         s.artist = r["item.show.name"] or ""   -- ポッドキャストは番組名
     end
-    if s.kind == "ad" then s.title = "(広告)" end
+    if s.kind == "ad" then s.title = pico.tr("(広告)") end
     s.art = pick_image(r, "item.album.images") or pick_image(r, "item.images")
     return s
 end
@@ -125,18 +125,18 @@ local function poll()
     if polling or not A.auth then return end
     local now = pico.millis()
     if not A.clock_ok() then
-        P.say("時計が合うのを待っています(Wi-Fiにつないでください)")
+        P.say(pico.tr("時計が合うのを待っています(Wi-Fiにつないでください)"))
         next_poll = now + 2000
         return
     end
     polling = true
     next_poll = now + 60000   -- 応答が来るまでは次を出さない(来たら決め直す)
     local save = file_mode and pico.path_join(pico.app_dir(), "player.json") or nil
-    A.call("GET", "/me/player?market=from_token&additional_types=episode", nil, function(ok, status, body, err)
+    A.call("GET", "/me/player?market=from_token&additional_types=episode", nil, function(ok, status, body, err, info)
         polling = false
         now = pico.millis()
         if not ok then
-            if err == "書き込みに失敗" and not file_mode then   -- 16KiBを超えた: 次はSDへ保存して読む
+            if info and info.too_large and not file_mode then   -- 16KiBを超えた: 次はSDへ保存して読む
                 file_mode = true
                 next_poll = now
                 return
@@ -150,7 +150,7 @@ local function poll()
         if status == 204 then
             if P.st then P.st = nil P.dirty = true end
             update_art(nil)
-            P.say("再生中の端末がありません。Spotifyで再生するか「端末」で選んでください")
+            P.say(pico.tr("再生中の端末がありません。Spotifyで再生するか「端末」で選んでください"))
             next_poll = now + IDLE_MS
             return
         end
@@ -162,7 +162,7 @@ local function poll()
         local r
         if save then r = pico.sd_json_pick(save, PATHS) else r = pico.json_pick(body or "", PATHS) end
         if not r then
-            P.say("応答を読めません", true)
+            P.say(pico.tr("応答を読めません"), true)
             next_poll = now + POLL_MS
             return
         end
@@ -246,7 +246,7 @@ end
 function P.set_volume(v)
     local s = P.st
     if not (s and s.can_volume) then
-        P.say("この端末は音量を変えられません", false, 3000)
+        P.say(pico.tr("この端末は音量を変えられません"), false, 3000)
         return
     end
     v = math.floor(math.max(0, math.min(100, v)) + 0.5)
@@ -288,7 +288,7 @@ function P.devices(fn)
             paths[#paths + 1] = "devices." .. i .. ".is_active"
         end
         local r = pico.json_pick(body or "", paths)
-        if not r then return fn(nil, "応答を読めません") end
+        if not r then return fn(nil, pico.tr("応答を読めません")) end
         local list = {}
         for i = 1, math.min(r["devices#"] or 0, 8) do
             local id = r["devices." .. i .. ".id"]
@@ -303,7 +303,7 @@ end
 
 -- その端末へ再生を移す(止まっていれば再生も始める)
 function P.transfer(id)
-    P.say("端末を切り替えています…", false, 3000)
+    P.say(pico.tr("端末を切り替えています…"), false, 3000)
     action("PUT", "/me/player", pico.json_encode({ device_ids = { id }, play = true }), 1500)
 end
 

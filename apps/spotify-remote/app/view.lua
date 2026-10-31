@@ -161,7 +161,7 @@ local function draw_volume(s)
     local v = (s and s.volume or 0) / 100
     if V.drag and V.drag.kind == "vol" then v = V.drag.v end
     bar(VOL_X0, VOL_X1, VOL_Y, v, can and DKGREEN or LTGREY)
-    local label = can and (math.floor(v * 100 + 0.5) .. "%") or "音量 -"
+    local label = can and (math.floor(v * 100 + 0.5) .. "%") or pico.tr("音量 -")
     pico.draw_text(X + W - 6, VOL_Y - 8, label, can and BLACK or DKGREY, FS, "right")
 end
 
@@ -173,16 +173,16 @@ end
 -- ログインしていないときの案内
 local function draw_setup()
     pico.draw_text_wrapped(X + 8, Y + 8, W - 16,
-        "Spotifyにログインしていません。\n\n" ..
-        "PCで次を実行し、作られた spotify_auth.json をSDの lua/apps/Spotify/ へ置いてください" ..
-        "(USBドライブで繋げばそのまま書けます)。\n\n" ..
-        "picoos spotify-auth --client-id <ID> --sd <SDの場所>\n\n" ..
-        "Client ID は developer.spotify.com のダッシュボードで作ったアプリのものです。",
+        pico.tr("Spotifyにログインしていません。\n\n") ..
+        pico.tr("PCで次を実行し、作られた spotify_auth.json をSDの lua/apps/Spotify/ へ置いてください") ..
+        pico.tr("(USBドライブで繋げばそのまま書けます)。\n\n") ..
+        pico.tr("picoos spotify-auth --client-id <ID> --sd <SDの場所>") .. "\n\n" ..
+        pico.tr("Client ID は developer.spotify.com のダッシュボードで作ったアプリのものです。"),
         BLACK, FS, "left")
     -- 読み直すボタン
     local bx, by, bw, bh = V.reload_rect()
     pico.fill_rect(bx, by, bw, bh, BLACK)
-    pico.draw_text(bx + bw // 2, by + 8, "読み込む", WHITE, FS, "center")
+    pico.draw_text(bx + bw // 2, by + 8, pico.tr("読み込む"), WHITE, FS, "center")
     draw_message()
 end
 function V.reload_rect() return X + W // 2 - 60, Y + H - 72, 120, 32 end
@@ -197,11 +197,11 @@ function V.render(logged_in)
         pico.draw_text(TX, ART_Y + 20, fit(s.artist, TW), BLACK, FS)
         pico.draw_text(TX, ART_Y + 40, fit(s.album, TW), DKGREY, FS)
         if s.device ~= "" then
-            pico.draw_text(TX, ART_Y + 62, fit("端末: " .. s.device, TW), DKGREEN, FS)
+            pico.draw_text(TX, ART_Y + 62, fit(pico.tr("端末: ") .. s.device, TW), DKGREEN, FS)
         end
         draw_progress(s)
     else
-        pico.draw_text(TX, ART_Y, "停止中", DKGREY, FS)
+        pico.draw_text(TX, ART_Y, pico.tr("停止中"), DKGREY, FS)
         bar(BAR_X0, BAR_X1, BAR_Y, 0, LTGREY)
     end
     draw_controls(s)

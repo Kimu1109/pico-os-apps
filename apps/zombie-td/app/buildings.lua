@@ -23,7 +23,7 @@ local MELEE_GAP = 0.9         -- 剣塔はこれだけ離れていても届く(�
 -- 弓塔 $100 で 13/秒・射程6、剣塔 $90 で 17/秒・耐久450。docs/ZOMBIE_TD.md「釣り合い」)
 M.TYPES = {
     arrow = {
-        name = "弓塔", tower = true, prio = 4, cost = 100, build = 5, sx = 216, range = 6,
+        name = pico.tr("弓塔"), tower = true, prio = 4, cost = 100, build = 5, sx = 216, range = 6,
         up = { 80, 120, 170 },
         lv = {
             { hp = 200, dmg = 12, rate = 0.9 },
@@ -34,7 +34,7 @@ M.TYPES = {
     },
     guard = {
         -- ゾンビが一番先に狙う(囮。優先度の順位 0)
-        name = "剣塔", tower = true, prio = 0, cost = 90, build = 5, sx = 236,
+        name = pico.tr("剣塔"), tower = true, prio = 0, cost = 90, build = 5, sx = 236,
         up = { 70, 110, 160 },
         lv = {
             { hp = 450, dmg = 12, rate = 0.7 },
@@ -45,7 +45,7 @@ M.TYPES = {
     },
     -- slow = 中を通るゾンビの速さの倍率(zombies.lua)
     wall = {
-        name = "柵", cost = 20, build = 3,
+        name = pico.tr("柵"), cost = 20, build = 3,
         up = { 25, 40, 60 },
         lv = { { hp = 150, slow = 0.5 }, { hp = 260, slow = 0.45 }, { hp = 400, slow = 0.4 }, { hp = 600, slow = 0.35 } },
     },
@@ -120,13 +120,13 @@ function M.count() return #list end
 -- 置けるか。置けないときは理由を返す
 function M.can_place(kind, x, z, stand_rules)
     x, z = math.floor(x), math.floor(z)
-    if M.at[col(x, z)] then return false, "もう建物があります" end
-    if not iso.stand(x, z, nil, stand_rules) then return false, "そこには置けません" end
-    if math.max(math.abs(x - base.x), math.abs(z - base.z)) <= 3 then return false, "ベースの近くには置けません" end
+    if M.at[col(x, z)] then return false, pico.tr("もう建物があります") end
+    if not iso.stand(x, z, nil, stand_rules) then return false, pico.tr("そこには置けません") end
+    if math.max(math.abs(x - base.x), math.abs(z - base.z)) <= 3 then return false, pico.tr("ベースの近くには置けません") end
     for _, s in ipairs(spawns) do
-        if math.max(math.abs(x - s.x), math.abs(z - s.z)) <= 3 then return false, "出現位置の近くには置けません" end
+        if math.max(math.abs(x - s.x), math.abs(z - s.z)) <= 3 then return false, pico.tr("出現位置の近くには置けません") end
     end
-    if M.TYPES[kind].tower and towers >= M.MAX_TOWERS then return false, "タワーは" .. M.MAX_TOWERS .. "個までです" end
+    if M.TYPES[kind].tower and towers >= M.MAX_TOWERS then return false, pico.tr("タワーは%s個までです", M.MAX_TOWERS) end
     return true
 end
 

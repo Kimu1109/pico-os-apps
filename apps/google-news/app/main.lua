@@ -10,10 +10,10 @@ local X, Y, W, H = pico.content_rect()
 local BASE = pico.settings_get("base", "https://news.google.com")
 local TAIL = "hl=ja&gl=JP&ceid=JP:ja"
 local TOPICS = {
-    { "ヘッドライン", "/rss?" .. TAIL },
-    { "国内", "NATION" }, { "国際", "WORLD" }, { "ビジネス", "BUSINESS" },
-    { "テクノロジー", "TECHNOLOGY" }, { "エンタメ", "ENTERTAINMENT" },
-    { "スポーツ", "SPORTS" }, { "科学", "SCIENCE" }, { "健康", "HEALTH" },
+    { pico.tr("ヘッドライン"), "/rss?" .. TAIL },
+    { pico.tr("国内"), "NATION" }, { pico.tr("国際"), "WORLD" }, { pico.tr("ビジネス"), "BUSINESS" },
+    { pico.tr("テクノロジー"), "TECHNOLOGY" }, { pico.tr("エンタメ"), "ENTERTAINMENT" },
+    { pico.tr("スポーツ"), "SPORTS" }, { pico.tr("科学"), "SCIENCE" }, { pico.tr("健康"), "HEALTH" },
 }
 local MAXN = 30                    -- 読み込む件数
 local FILE = pico.app_dir() .. "/news.xml"
@@ -100,7 +100,7 @@ local function read_items()
 end
 
 local function name_now()
-    if mode == "search" then return "検索: " .. query end
+    if mode == "search" then return pico.tr("検索: ") .. query end
     return TOPICS[topic][1]
 end
 
@@ -152,7 +152,7 @@ local function render()
     end
     -- 上の状態の行(はみ出した行を隠してから描く)
     pico.fill_rect(X, Y + 32, W, STAT, 15)
-    pico.draw_text(X + 6, Y + 34, status ~= "" and status or name_now(), (status:find("失敗") and RED) or DGREY, 0)
+    pico.draw_text(X + 6, Y + 34, status ~= "" and status or name_now(), (status:find(pico.tr("失敗")) and RED) or DGREY, 0)
     -- スクロールの印
     local ms = max_scroll()
     if ms > 0 then
@@ -184,7 +184,7 @@ local function show_detail(i)
     sel = i
     redraw()
     local meta = (it.src ~= "" and it.src or "") .. (it.time ~= "" and ("  " .. it.time) or "")
-    pico.show_message(it.title .. "\n\n" .. meta, "", "閉じる")
+    pico.show_message(it.title .. "\n\n" .. meta, "", pico.tr("閉じる"))
 end
 
 -- ---- 通信 ----
@@ -192,7 +192,7 @@ local function show_file(note)
     local list, err = read_items()
     if #list == 0 then
         items = {}
-        status = "取得に失敗しました: " .. (err or "記事が見つかりません")
+        status = pico.tr("取得に失敗しました: ") .. (err or pico.tr("記事が見つかりません"))
     else
         items, sel, scroll = list, 1, 0
         status = ""
@@ -203,24 +203,24 @@ end
 
 local function load_news()
     if req then pico.http_cancel(req) end
-    status = "取得中…"
+    status = pico.tr("取得中…")
     redraw()
     local my = name_now()
     req = pico.http_request("GET", url_now(), nil, nil, function(ok, code)
         req = nil
         if my ~= name_now() then return end
         if not ok then
-            status = "取得に失敗しました"
+            status = pico.tr("取得に失敗しました")
             redraw()
         elseif code ~= 200 then
-            status = "取得に失敗しました(HTTP " .. tostring(code) .. ")"
+            status = pico.tr("取得に失敗しました(HTTP %s)", tostring(code))
             redraw()
         else
             show_file()
         end
     end, { keep_alive = true, save_to = FILE })
     if not req then
-        status = "取得に失敗しました: 通信できません"
+        status = pico.tr("取得に失敗しました: 通信できません")
         redraw()
     end
 end
@@ -233,7 +233,7 @@ end
 local function pick_topic()
     local names = {}
     for i, t in ipairs(TOPICS) do names[i] = t[1] end
-    local dlg = pico.show_choice("分野を選ぶ", names)
+    local dlg = pico.show_choice(pico.tr("分野を選ぶ"), names)
     pico.on(dlg, "closed", function(_, ok, idx)
         if ok and TOPICS[idx + 1] then
             mode, topic = "topic", idx + 1
@@ -245,7 +245,7 @@ local function pick_topic()
 end
 
 local function search()
-    local dlg = pico.show_input("キーワード", query, true, "検索", "キャンセル")
+    local dlg = pico.show_input(pico.tr("キーワード"), query, true, pico.tr("検索"), pico.tr("キャンセル"))
     pico.on(dlg, "closed", function(id, ok)
         local q = ok and pico.get(id, "text") or ""
         if q ~= "" then
@@ -276,10 +276,10 @@ local function button(text, x, w, fn)
 end
 
 local bw = (W - 6) // 4
-button("戻る", X, bw, back)
-button("分野", X + bw + 2, bw, pick_topic)
-button("検索", X + (bw + 2) * 2, bw, search)
-button("更新", X + (bw + 2) * 3, bw, load_news)
+button(pico.tr("戻る"), X, bw, back)
+button(pico.tr("分野"), X + bw + 2, bw, pick_topic)
+button(pico.tr("検索"), X + (bw + 2) * 2, bw, search)
+button(pico.tr("更新"), X + (bw + 2) * 3, bw, load_news)
 
 canvas = pico.create("Canvas")
 pico.set(canvas, "x", X)
@@ -321,5 +321,5 @@ end
 pico.on_back(back)
 
 -- 前回の news.xml があればすぐ見せて、そのまま更新する
-if pico.sd_exists(FILE) then show_file("保存済みの記事") end
+if pico.sd_exists(FILE) then show_file(pico.tr("保存済みの記事")) end
 load_news()

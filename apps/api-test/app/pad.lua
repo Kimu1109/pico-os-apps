@@ -112,8 +112,8 @@ function loop(dt)
     local connected = pico.pad_connected()
     if connected ~= last_connected then
         last_connected = connected
-        pico.set(status, "text", connected and "コントローラー: 接続中"
-                                           or "コントローラー: 未接続")
+        pico.set(status, "text", connected and pico.tr("コントローラー: 接続中")
+                                           or pico.tr("コントローラー: 未接続"))
     end
 
     -- 押しているものが変わったときだけ図を描き直す

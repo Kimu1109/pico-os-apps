@@ -9,9 +9,9 @@ local game = require("pico.game")
 
 -- cell: マスの一辺 / gap: 隙間(タイルの右と下に含む) / img: タイルの画像
 local DIFFICULTIES = {
-    { name = "初級", rows = 9,  cols = 9,  mines = 10, cell = 20, gap = 2, img = "tiles20.pimg" },
-    { name = "中級", rows = 12, cols = 12, mines = 22, cell = 16, gap = 1, img = "tiles16.pimg" },
-    { name = "上級", rows = 16, cols = 15, mines = 45, cell = 14, gap = 1, img = "tiles14.pimg" },
+    { name = pico.tr("初級"), rows = 9,  cols = 9,  mines = 10, cell = 20, gap = 2, img = "tiles20.pimg" },
+    { name = pico.tr("中級"), rows = 12, cols = 12, mines = 22, cell = 16, gap = 1, img = "tiles16.pimg" },
+    { name = pico.tr("上級"), rows = 16, cols = 15, mines = 45, cell = 14, gap = 1, img = "tiles14.pimg" },
 }
 -- タイルの値(画像の左から1番目〜)
 local T_HIDDEN, T_BLANK, T_NUM1, T_FLAG, T_MINE = 1, 2, 3, 11, 12
@@ -163,11 +163,11 @@ local function button(name, x, y, w, h, label)
 end
 
 button("back", 4, 2, 42, 28, "left")
-button("reset", 50, 2, 76, 28, "リセット")
-button("flag", g.vw - 110, 2, 64, 28, "旗:OFF") -- 右の2つは右端に寄せる(240幅で130・198)
-button("menu", g.vw - 42, 2, 38, 28, "難度")
+button("reset", 50, 2, 76, 28, pico.tr("リセット"))
+button("flag", g.vw - 110, 2, 64, 28, pico.tr("旗:OFF")) -- 右の2つは右端に寄せる(240幅で130・198)
+button("menu", g.vw - 42, 2, 38, 28, pico.tr("難度"))
 for i, d in ipairs(DIFFICULTIES) do
-    button("d" .. i, 20, 104 + (i - 1) * 56, g.vw - 40, 44, d.name .. "  " .. d.cols .. "×" .. d.rows .. "  地雷" .. d.mines)
+    button("d" .. i, 20, 104 + (i - 1) * 56, g.vw - 40, 44, pico.tr("%s  %d×%d  地雷%d", d.name, d.cols, d.rows, d.mines))
 end
 
 -- 今の画面で見せるボタン(隠したボタンはタッチも受けない)
@@ -179,7 +179,7 @@ end
 
 local function setFlagMode(on)
     flag_mode = on
-    buttons.flag.label = on and "旗:ON" or "旗:OFF"
+    buttons.flag.label = on and pico.tr("旗:ON") or pico.tr("旗:OFF")
     local b = buttons.flag
     g:dirty(b.x, b.y, b.w, b.h)
 end
@@ -231,9 +231,9 @@ function g:on_draw(ox, oy)
     if self.state_name == "menu" then return end
     local text
     if self.state_name == "done" then
-        text = win and "クリア!" or "失敗"
+        text = win and pico.tr("クリア!") or pico.tr("失敗")
     else
-        text = "残り:" .. (MINES - flag_count)
+        text = pico.tr("残り:%d", MINES - flag_count)
     end
     pico.draw_text(ox + 8, oy + 36, text, 0, 0)
     pico.draw_text(ox + g.vw - 8 - pico.text_width(diff.name, 0), oy + 36, diff.name, 8, 0)
@@ -245,8 +245,8 @@ g:state("menu", {
         showButtons({ "back", "d1", "d2", "d3" })
     end,
     draw = function(_, ox, oy)
-        centerText("マインスイーパー", 40, 0, 1)
-        centerText("難易度を選んでください", 76, 8, 0)
+        centerText(pico.tr("マインスイーパー"), 40, 0, 1)
+        centerText(pico.tr("難易度を選んでください"), 76, 8, 0)
     end,
 })
 

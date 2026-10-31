@@ -43,7 +43,7 @@ buildings.on_lost = function(b)
 end
 
 local function pay(c)
-    if G.money < c then G.say("お金が足りません"); return false end
+    if G.money < c then G.say(pico.tr("お金が足りません")); return false end
     G.add_money(-c)
     sfx.coin()
     return true
@@ -51,10 +51,10 @@ end
 
 function M.hire(kind)
     local t = soldiers.TYPES[kind]
-    if soldiers.count() >= soldiers.MAX then return G.say("兵士は" .. soldiers.MAX .. "人までです") end
-    if G.money < t.cost then return G.say("お金が足りません") end
+    if soldiers.count() >= soldiers.MAX then return G.say(pico.tr("兵士は%s人までです", soldiers.MAX)) end
+    if G.money < t.cost then return G.say(pico.tr("お金が足りません")) end
     local s = soldiers.hire(kind)
-    if not s then return G.say("これ以上置けません") end
+    if not s then return G.say(pico.tr("これ以上置けません")) end
     pay(t.cost)
     M.set_selection({ s })
 end
@@ -64,9 +64,9 @@ function M.build_at(bx, bz)
     local kind = G.build_mode
     local ok, why = buildings.can_place(kind, bx, bz, G.S_STAND)
     if not ok then return G.say(why) end
-    if G.money < buildings.TYPES[kind].cost then return G.say("お金が足りません") end
+    if G.money < buildings.TYPES[kind].cost then return G.say(pico.tr("お金が足りません")) end
     local b = buildings.place(kind, bx, bz, G.S_STAND)
-    if not b then return G.say("これ以上置けません") end
+    if not b then return G.say(pico.tr("これ以上置けません")) end
     pay(buildings.TYPES[kind].cost)
     G.build_mode = false
     M.select_building(b)
@@ -95,7 +95,7 @@ function M.sell()
     local v
     if G.bsel then
         local b = G.bsel
-        if not buildings.sell_value(b) then return G.say("建設中・強化中は売れません") end
+        if not buildings.sell_value(b) then return G.say(pico.tr("建設中・強化中は売れません")) end
         M.deselect_all()
         v = buildings.sell(b)
     elseif #G.sel == 1 then
@@ -118,7 +118,7 @@ end
 -- 選んでいる兵士を柱 (bx, bz) へ動かす
 local function move_to(bx, bz)
     if #G.sel == 0 then return end
-    if soldiers.order_group(G.sel, bx + 0.5, bz + 0.5) then G.moved = true else G.say("そこへは行けません") end
+    if soldiers.order_group(G.sel, bx + 0.5, bz + 0.5) then G.moved = true else G.say(pico.tr("そこへは行けません")) end
 end
 
 -- 柱の真ん中の近くに立っている兵士
@@ -162,7 +162,7 @@ function M.select_rect(x0, y0, x1, y1)
         if sx >= x0 and sx <= x1 and sy >= y0 and sy <= y1 then got[#got + 1] = s end
     end
     M.set_selection(got)
-    if #got == 0 then G.say("兵士がいません") end
+    if #got == 0 then G.say(pico.tr("兵士がいません")) end
 end
 
 return M

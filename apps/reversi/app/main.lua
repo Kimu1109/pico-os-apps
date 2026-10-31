@@ -32,7 +32,7 @@ for r = 1, SIZE do
 end
 
 local function opponentOf(p) return p == 1 and 2 or 1 end
-local function playerName(p) return p == 1 and "黒" or "白" end
+local function playerName(p) return p == 1 and pico.tr("黒") or pico.tr("白") end
 
 local function countStones()
     local b, w = 0, 0
@@ -169,19 +169,19 @@ function g:on_draw_world(ox, oy)
 end
 
 function g:on_draw(ox, oy)
-    pico.draw_text(ox + 8, oy + 4, "リバーシ", 0, 1)
+    pico.draw_text(ox + 8, oy + 4, pico.tr("リバーシ"), 0, 1)
     local b, w = countStones()
     local text
     if self.state_name == "over" then
-        text = "終了  黒:" .. b .. " 白:" .. w
+        text = pico.tr("終了  黒:%d 白:%d", b, w)
     else
-        text = playerName(current) .. "の番  黒:" .. b .. " 白:" .. w
+        text = pico.tr("%sの番  黒:%d 白:%d", playerName(current), b, w)
     end
     pico.draw_text(ox + 8, oy + 32, text, 0, 0)
 end
 
 g:button{ name = "back", x = 8, y = 56, w = 59, h = 31, label = "left" }
-g:button{ name = "reset", x = 71, y = 56, w = 79, h = 31, label = "リセット" }
+g:button{ name = "reset", x = 71, y = 56, w = 79, h = 31, label = pico.tr("リセット") }
 
 g:state("play", {
     update = function()
@@ -208,7 +208,7 @@ g:state("pass", {
         statusDirty()
     end,
     draw = function()
-        if pass_next then banner({ playerName(opponentOf(pass_next.player)) .. "は置ける場所が", "無いのでパス" }) end
+        if pass_next then banner({ pico.tr("%sは置ける場所が", playerName(opponentOf(pass_next.player))), pico.tr("無いのでパス") }) end
     end,
 })
 
@@ -216,8 +216,8 @@ g:state("over", {
     update = function() if g.touch.pressed then newGame() end end,
     draw = function()
         local b, w = countStones()
-        local msg = b > w and "黒の勝ち!" or w > b and "白の勝ち!" or "引き分け"
-        banner({ msg, "黒" .. b .. " - 白" .. w, "タップでもう一度" })
+        local msg = b > w and pico.tr("黒の勝ち!") or w > b and pico.tr("白の勝ち!") or pico.tr("引き分け")
+        banner({ msg, pico.tr("黒%d - 白%d", b, w), pico.tr("タップでもう一度") })
     end,
 })
 

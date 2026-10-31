@@ -182,10 +182,10 @@ g:state("title", {
         if g:pressed("a") or g:pressed("start") or g.touch.pressed then g:go("intro") end
     end,
     draw = function()
-        center_text("おしてのぼれ", 40, 1, 2)
-        center_text("箱を押して、積んで、\n旗まで行こう", 84, 1, 0)
-        center_text("A:ジャンプ B:やり直し\n↓:すり抜け床から降りる", 124, 1, 0)
-        center_text("Aかタップで始める", 168, 12, 0)
+        center_text(pico.tr("おしてのぼれ"), 40, 1, 2)
+        center_text(pico.tr("箱を押して、積んで、\n旗まで行こう"), 84, 1, 0)
+        center_text(pico.tr("A:ジャンプ B:やり直し\n↓:すり抜け床から降りる"), 124, 1, 0)
+        center_text(pico.tr("Aかタップで始める"), 168, 12, 0)
     end,
 })
 
@@ -244,7 +244,7 @@ g:state("miss", {
         player.vx, player.vy = 0, 0
         g:after(1.2, function() g:go("intro") end)
     end,
-    draw = function() center_text("おちた!", 90, 12, 2) end,
+    draw = function() center_text(pico.tr("おちた!"), 90, 12, 2) end,
 })
 
 g:state("clear", {
@@ -256,7 +256,7 @@ g:state("clear", {
             if stage < #STAGES then stage = stage + 1; g:go("intro") else g:go("ending") end
         end)
     end,
-    draw = function() center_text("クリア!", 90, 14, 2) end,
+    draw = function() center_text(pico.tr("クリア!"), 90, 14, 2) end,
 })
 
 g:state("ending", {
@@ -265,8 +265,8 @@ g:state("ending", {
         if g:pressed("a") or g:pressed("start") or g.touch.pressed then g:go("title") end
     end,
     draw = function()
-        center_text("ぜんぶ クリア!", 60, 1, 1)
-        center_text("あそんでくれてありがとう", 120, 1, 0)
+        center_text(pico.tr("ぜんぶ クリア!"), 60, 1, 1)
+        center_text(pico.tr("あそんでくれてありがとう"), 120, 1, 0)
     end,
 })
 

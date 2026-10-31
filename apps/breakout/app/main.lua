@@ -383,7 +383,7 @@ g:button{ name = "back", x = 2, y = 0, w = 40, h = 22, label = "left" }
 auto_btn = g:button{ name = "auto", x = cw - 43, y = 0, w = 41, h = 22, draw = function(b, x, y, w, h)
     pico.fill_rect(x + 1, y + 1, w - 2, h - 2, auto and 2 or 8)
     pico.draw_rect(x + 1, y + 1, w - 2, h - 2, 0)
-    pico.draw_text(x + (w - pico.text_width("自動", 0)) // 2, y + 3, "自動", 15, 0)
+    pico.draw_text(x + (w - pico.text_width(pico.tr("自動"), 0)) // 2, y + 3, pico.tr("自動"), 15, 0)
 end }
 
 g:state("ready", {
@@ -394,7 +394,7 @@ g:state("ready", {
         if goKey() then launch() end
     end,
     draw = function(_, ox, oy)
-        local t = "タップで発射"
+        local t = pico.tr("タップで発射")
         pico.draw_text(ox + (cw - pico.text_width(t, 0)) // 2, oy + paddle_y - 36, t, 8, 0)
     end,
 })
@@ -425,17 +425,17 @@ g:state("clear", {
             readyBall()
         end
     end,
-    draw = function(_, ox, oy) overlay(ox, oy, "ステージ" .. stage_idx .. "クリア!", "タップで次へ") end,
+    draw = function(_, ox, oy) overlay(ox, oy, pico.tr("ステージ%dクリア!", stage_idx), pico.tr("タップで次へ")) end,
 })
 
 g:state("over", {
     update = function() if goKey() then startGame() end end,
-    draw = function(_, ox, oy) overlay(ox, oy, "ゲームオーバー", "スコア:" .. score, "タップでもう一度") end,
+    draw = function(_, ox, oy) overlay(ox, oy, pico.tr("ゲームオーバー"), pico.tr("スコア:%d", score), pico.tr("タップでもう一度")) end,
 })
 
 g:state("win", {
     update = function() if goKey() then startGame() end end,
-    draw = function(_, ox, oy) overlay(ox, oy, "全ステージクリア!", "スコア:" .. score, "タップで最初から") end,
+    draw = function(_, ox, oy) overlay(ox, oy, pico.tr("全ステージクリア!"), pico.tr("スコア:%d", score), pico.tr("タップで最初から")) end,
 })
 
 pico.on_back(function() pico.pop() end)

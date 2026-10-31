@@ -5,7 +5,7 @@ local x, y, w, h = pico.content_rect()
 local title = pico.create("Label")
 pico.set(title, "x", x + 10)
 pico.set(title, "y", y + 10)
-pico.set(title, "text", args.title or "選んでください")
+pico.set(title, "text", args.title or pico.tr("選んでください"))
 
 local colors = { "red", "green", "blue" }
 for i, name in ipairs(colors) do
@@ -25,5 +25,5 @@ pico.set(cancel, "x", x + 10)
 pico.set(cancel, "y", y + 170)
 pico.set(cancel, "w", 120)
 pico.set(cancel, "h", 34)
-pico.set(cancel, "text", "やめる")
+pico.set(cancel, "text", pico.tr("やめる"))
 pico.on(cancel, "press_end", function() pico.pop() end)   -- 結果なし: 親の on_result は呼ばれない
