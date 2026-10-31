@@ -25,7 +25,7 @@ local SELL_RATE = 0.7         -- 売ると払った合計のこの割合が戻�
 -- 種類とレベルごとの値(数値は初期値)。up[i] は Lv i → i+1 の費用
 M.TYPES = {
     melee = {
-        name = "近接", prio = 1, cost = 60, sx = 124, speed = 1.6,
+        name = pico.tr("近接"), prio = 1, cost = 60, sx = 124, speed = 1.6,
         up = { 50, 80, 120 },
         lv = {
             { hp = 60, dmg = 6, rate = 0.8 },     -- 短剣
@@ -35,7 +35,7 @@ M.TYPES = {
         },
     },
     healer = {
-        name = "回復", prio = 2, cost = 70, sx = 148, speed = 1.4,
+        name = pico.tr("回復"), prio = 2, cost = 70, sx = 148, speed = 1.4,
         up = { 50, 80, 120 },
         lv = {
             { hp = 45, heal = 6, rate = 2.0 },
@@ -45,7 +45,7 @@ M.TYPES = {
         },
     },
     ranged = {
-        name = "弓", prio = 3, cost = 80, sx = 172, speed = 1.4, range = 4.5,
+        name = pico.tr("弓"), prio = 3, cost = 80, sx = 172, speed = 1.4, range = 4.5,
         up = { 60, 90, 130 },
         lv = {
             { hp = 40, dmg = 5, rate = 1.2 },     -- 弓

@@ -15,10 +15,10 @@ local MAX_ITEMS = 50
 
 -- 種類: 一覧の文字・アイコンと、入力の項目
 local KINDS = {
-    { id = "url",     label = "URL・サイト", icon = pico.ICON_Link },
-    { id = "contact", label = "連絡先",     icon = pico.ICON_User },
+    { id = "url",     label = pico.tr("URL・サイト"), icon = pico.ICON_Link },
+    { id = "contact", label = pico.tr("連絡先"),     icon = pico.ICON_User },
     { id = "wifi",    label = "Wi-Fi",      icon = pico.ICON_WifiSignal4 },
-    { id = "text",    label = "テキスト",   icon = pico.ICON_File },
+    { id = "text",    label = pico.tr("テキスト"),   icon = pico.ICON_File },
 }
 local KIND_BY_ID = {}
 for _, k in ipairs(KINDS) do KIND_BY_ID[k.id] = k end
@@ -75,7 +75,7 @@ end
 
 local function save()
     if not pico.store_save({ items = items }, { encrypt = true }) then
-        pico.show_message("保存できませんでした(SDを確認してください)", "", "OK")
+        pico.show_message(pico.tr("保存できませんでした(SDを確認してください)"), "", "OK")
     end
 end
 
@@ -116,7 +116,7 @@ local function refresh_list()
     for _, e in ipairs(items) do
         pico.list_add(list, e.name, { icon = KIND_BY_ID[e.kind].icon })
     end
-    pico.set(count_label, "text", #items .. "件")
+    pico.set(count_label, "text", pico.tr("%s件", #items))
     pico.set(empty_label, "visible", current == 0 and #items == 0)
 end
 
@@ -143,26 +143,26 @@ end
 -- 種類ごとの入力。e は編集なら元の項目、追加なら nil。キャンセルされたら nil を返す
 local function ask(kind, e)
     local f = e and e.f or {}
-    local name = async.input(kind == "contact" and "名前" or "名前(一覧に出す)", e and e.name or "")
+    local name = async.input(kind == "contact" and pico.tr("名前") or pico.tr("名前(一覧に出す)"), e and e.name or "")
     if not name or name == "" then return nil end
     local nf = {}
     if kind == "url" then
-        nf.url = async.input("URL(サイト・SNSのアカウントのページなど)", f.url or "https://")
+        nf.url = async.input(pico.tr("URL(サイト・SNSのアカウントのページなど)"), f.url or "https://")
         if not nf.url or nf.url == "" then return nil end
     elseif kind == "contact" then
-        nf.tel = async.input("電話番号(無ければ空)", f.tel or "")
+        nf.tel = async.input(pico.tr("電話番号(無ければ空)"), f.tel or "")
         if not nf.tel then return nil end
-        nf.email = async.input("メールアドレス(無ければ空)", f.email or "")
+        nf.email = async.input(pico.tr("メールアドレス(無ければ空)"), f.email or "")
         if not nf.email then return nil end
-        nf.url = async.input("URL(無ければ空)", f.url or "")
+        nf.url = async.input(pico.tr("URL(無ければ空)"), f.url or "")
         if not nf.url then return nil end
     elseif kind == "wifi" then
-        nf.ssid = async.input("Wi-Fiの名前(SSID)", f.ssid or "")
+        nf.ssid = async.input(pico.tr("Wi-Fiの名前(SSID)"), f.ssid or "")
         if not nf.ssid or nf.ssid == "" then return nil end
-        nf.pass = async.input("パスワード(無ければ空)", f.pass or "")
+        nf.pass = async.input(pico.tr("パスワード(無ければ空)"), f.pass or "")
         if not nf.pass then return nil end
     else
-        nf.text = async.input("QRにする文字", f.text or "", false)
+        nf.text = async.input(pico.tr("QRにする文字"), f.text or "", false)
         if not nf.text or nf.text == "" then return nil end
     end
     return { kind = kind, name = name, f = nf }
@@ -172,21 +172,21 @@ end
 local function fits(e)
     local s = payload(e)
     if #s <= 255 then return true end
-    async.message(string.format("長すぎてQRに入りません(%dバイト。255バイトまで)", #s), "", "OK")
+    async.message(string.format(pico.tr("長すぎてQRに入りません(%dバイト。255バイトまで)"), #s), "", "OK")
     return false
 end
 
 local function add()
     if busy then return end
     if #items >= MAX_ITEMS then
-        pico.show_message("保存できるのは" .. MAX_ITEMS .. "件までです", "", "OK")
+        pico.show_message(pico.tr("保存できるのは%s件までです", MAX_ITEMS), "", "OK")
         return
     end
     busy = true
     async.run(function()
         local names = {}
         for i, k in ipairs(KINDS) do names[i] = k.label end
-        local k = async.choice("何のQRを作りますか", names)
+        local k = async.choice(pico.tr("何のQRを作りますか"), names)
         local e = k and ask(KINDS[k + 1].id)
         if e and fits(e) then
             items[#items + 1] = e
@@ -217,7 +217,7 @@ local function remove()
     busy = true
     async.run(function()
         local i = current
-        if async.message("「" .. items[i].name .. "」を消しますか?", "キャンセル", "消す") then
+        if async.message(pico.tr("「%s」を消しますか?", items[i].name), pico.tr("キャンセル"), pico.tr("消す")) then
             table.remove(items, i)
             save()
             show_list()
@@ -235,8 +235,8 @@ end
 
 -- 一覧
 local bw = (W - GAP) // 3
-list_view[#list_view + 1] = button("戻る", X, bw, function() pico.pop() end)
-list_view[#list_view + 1] = button("追加", X + bw + GAP, bw, add)
+list_view[#list_view + 1] = button(pico.tr("戻る"), X, bw, function() pico.pop() end)
+list_view[#list_view + 1] = button(pico.tr("追加"), X + bw + GAP, bw, add)
 count_label = pico.create("Label")
 pico.set(count_label, "x", X + (bw + GAP) * 2 + GAP)
 pico.set(count_label, "y", Y + 6)
@@ -260,15 +260,15 @@ pico.set(empty_label, "x", X + 8)
 pico.set(empty_label, "y", Y + ROW_H + GAP + 8)
 pico.set(empty_label, "font_size", pico.FONT_SMALL)
 pico.set(empty_label, "max_width", W - 16)
-pico.set(empty_label, "text", "[追加]で、URL・連絡先・Wi-FiなどのQRを保存できます")
+pico.set(empty_label, "text", pico.tr("[追加]で、URL・連絡先・Wi-FiなどのQRを保存できます"))
 pico.set(empty_label, "hit_transparent", true)
 
 -- 表示
 local sw = (W - GAP * 4) // 5
 local sx = X
 -- 前/次は矢印のアイコン(◀▶はフォントに無い)
-for _, b in ipairs({ { "一覧", show_list }, { pico.ICON_ArrowLeft, function() step(-1) end },
-                     { pico.ICON_ArrowRight, function() step(1) end }, { "編集", edit }, { "削除", remove } }) do
+for _, b in ipairs({ { pico.tr("一覧"), show_list }, { pico.ICON_ArrowLeft, function() step(-1) end },
+                     { pico.ICON_ArrowRight, function() step(1) end }, { pico.tr("編集"), edit }, { pico.tr("削除"), remove } }) do
     local id = button(type(b[1]) == "string" and b[1] or "", sx, sw, b[2])
     if type(b[1]) == "number" then pico.set(id, "icon_id", b[1]) end
     show_view[#show_view + 1] = id

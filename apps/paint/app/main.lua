@@ -154,12 +154,12 @@ local undo_available = pico.get(canvas, "undo_enabled")
 -- 表示の更新
 ---------------------------------------------------------------------------
 local TOOL_NAMES = {
-    pen = "ペン", eraser = "消しゴム", straight = "直線",
-    rect = "四角形", ellipse = "楕円", fill = "塗りつぶし",
+    pen = pico.tr("ペン"), eraser = pico.tr("消しゴム"), straight = pico.tr("直線"),
+    rect = pico.tr("四角形"), ellipse = pico.tr("楕円"), fill = pico.tr("塗りつぶし"),
 }
 
 local function fileName(path)
-    return path and path:match("([^/]+)$") or "無題"
+    return path and path:match("([^/]+)$") or pico.tr("無題")
 end
 
 local function refreshStatus()
@@ -169,9 +169,9 @@ local function refreshStatus()
     else
         local tool_name = TOOL_NAMES[tool]
         if (tool == "rect" or tool == "ellipse") and fill_shape then
-            tool_name = tool_name .. "(塗)"
+            tool_name = tool_name .. pico.tr("(塗)")
         end
-        text = fileName(current_path) .. (modified and "(未保存)" or "") .. "  " .. tool_name
+        text = fileName(current_path) .. (modified and pico.tr("(未保存)") or "") .. "  " .. tool_name
     end
     pico.set(status, "text", text)
 end
@@ -260,14 +260,14 @@ end
 
 -- 確認ダイアログ。OKならon_okを(次のダイアログを開けるよう遅らせて)呼ぶ
 local function confirm(text, ok_text, on_ok)
-    local d = pico.show_message(text, "キャンセル", ok_text)
+    local d = pico.show_message(text, pico.tr("キャンセル"), ok_text)
     pico.on(d, "closed", function(_, is_ok)
         if is_ok then later(on_ok) end
     end)
 end
 
 local function notice(text)
-    pico.show_message(text, "閉じる", "OK")
+    pico.show_message(text, pico.tr("閉じる"), "OK")
 end
 
 ---------------------------------------------------------------------------
@@ -281,20 +281,20 @@ local function doSave(path)
     if pico.canvas_save(canvas, path) then
         current_path = path
         modified = false
-        say("保存しました: " .. fileName(path))
+        say(pico.tr("保存しました: ") .. fileName(path))
     else
-        notice("保存できませんでした")
+        notice(pico.tr("保存できませんでした"))
     end
 end
 
 local function askSave()
-    local default_name = current_path and fileName(current_path) or "無題.pimg"
+    local default_name = current_path and fileName(current_path) or pico.tr("無題.pimg")
     local d = pico.show_file_save(dirOf(current_path), default_name)
     pico.on(d, "closed", function(id, is_ok)
         if not is_ok then return end
         local path = pico.get(id, "path")
         if not path or path:sub(-1) == "/" then
-            later(function() notice("ファイル名を入れてください") end)
+            later(function() notice(pico.tr("ファイル名を入れてください")) end)
             return
         end
         if not path:lower():match("%.pimg$") then path = path .. ".pimg" end
@@ -302,7 +302,7 @@ local function askSave()
         -- 開いているファイル以外へ上書きするときだけ確かめる
         if path ~= current_path and pico.sd_exists(path) then
             later(function()
-                confirm(fileName(path) .. " を上書きしますか?", "上書き", function() doSave(path) end)
+                confirm(pico.tr("%s を上書きしますか?", fileName(path)), pico.tr("上書き"), function() doSave(path) end)
             end)
         else
             doSave(path)
@@ -316,16 +316,16 @@ local function askOpen()
         if not is_ok then return end
         local path = pico.get(id, "path")
         if not path or not path:lower():match("%.pimg$") then
-            later(function() notice(".pimg の画像を選んでください") end)
+            later(function() notice(pico.tr(".pimg の画像を選んでください")) end)
             return
         end
         -- 大きさは変えずに左上へ合わせて読む
         if pico.canvas_load(canvas, path, true) then
             current_path = path
             modified = false
-            say("開きました: " .. fileName(path))
+            say(pico.tr("開きました: ") .. fileName(path))
         else
-            later(function() notice("開けませんでした") end)
+            later(function() notice(pico.tr("開けませんでした")) end)
         end
     end)
 end
@@ -376,34 +376,34 @@ pico.on(size_preview, "press_start", cycleSize)
 
 pico.on(btn_undo, "press_start", function()
     if not undo_available then
-        say("元に戻すは使えません(メモリ不足)")
+        say(pico.tr("元に戻すは使えません(メモリ不足)"))
     elseif pico.canvas_undo(canvas) then
         -- 控えと入れ替えるので、続けて押すと戻す/やり直すが交互
         undone = not undone
         modified = true
-        say(undone and "元に戻しました" or "やり直しました")
+        say(undone and pico.tr("元に戻しました") or pico.tr("やり直しました"))
     else
-        say("戻せる操作がありません")
+        say(pico.tr("戻せる操作がありません"))
     end
 end)
 
 pico.on(btn_new, "press_start", function()
-    confirm("白紙に戻しますか?", "白紙に", function()
+    confirm(pico.tr("白紙に戻しますか?"), pico.tr("白紙に"), function()
         pico.canvas_clear(canvas)
         current_path = nil
         modified = false
-        say("新しい絵")
+        say(pico.tr("新しい絵"))
     end)
 end)
 
 pico.on(btn_open, "press_start", function()
-    unlessDiscarding("保存していない変更を捨てて開きますか?", "開く", askOpen)
+    unlessDiscarding(pico.tr("保存していない変更を捨てて開きますか?"), pico.tr("開く"), askOpen)
 end)
 
 pico.on(btn_save, "press_start", askSave)
 
 pico.on(btn_back, "press_start", function()
-    unlessDiscarding("保存せずに終了しますか?", "終了", function() pico.pop() end)
+    unlessDiscarding(pico.tr("保存せずに終了しますか?"), pico.tr("終了"), function() pico.pop() end)
 end)
 
 -- キャンバスに触れたら「未保存の変更あり」

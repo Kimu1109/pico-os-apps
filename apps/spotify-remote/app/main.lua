@@ -39,17 +39,17 @@ local function later(fn) pico.after(30, fn) end
 
 local function choose_device()
     if not logged_in then return end
-    P.say("端末を探しています…", false, 3000)
+    P.say(pico.tr("端末を探しています…"), false, 3000)
     P.devices(function(list, why)
         if not list then P.say(why, true, 5000) return end
         if #list == 0 then
-            P.say("端末が見つかりません。スマホ/PCでSpotifyを開いてください", true, 6000)
+            P.say(pico.tr("端末が見つかりません。スマホ/PCでSpotifyを開いてください"), true, 6000)
             return
         end
         P.say("")
         local names = {}
         for i, d in ipairs(list) do names[i] = (d.active and "● " or "") .. d.name end
-        local dlg = pico.show_choice("再生する端末", names)
+        local dlg = pico.show_choice(pico.tr("再生する端末"), names)
         pico.on(dlg, "closed", function(_, ok, idx)
             if ok and list[idx + 1] then P.transfer(list[idx + 1].id) end
         end)
@@ -57,19 +57,19 @@ local function choose_device()
 end
 
 local function confirm_logout()
-    local m = pico.show_message("ログアウトしますか?(保存したトークンを消します)", "いいえ", "はい")
+    local m = pico.show_message(pico.tr("ログアウトしますか?(保存したトークンを消します)"), pico.tr("いいえ"), pico.tr("はい"))
     pico.on(m, "closed", function(_, yes)
         if yes then
             A.logout()
             logged_in = false
             P.reset()
-            P.say("ログアウトしました", false, 4000)
+            P.say(pico.tr("ログアウトしました"), false, 4000)
         end
     end)
 end
 
 local function open_menu()
-    local items = logged_in and { "端末を選ぶ", "今すぐ更新", "ログアウト" } or { "ログイン情報を読み込む" }
+    local items = logged_in and { pico.tr("端末を選ぶ"), pico.tr("今すぐ更新"), pico.tr("ログアウト") } or { pico.tr("ログイン情報を読み込む") }
     local dlg = pico.show_choice("Spotify", items)
     pico.on(dlg, "closed", function(_, ok, idx)
         if not ok then return end
@@ -175,12 +175,12 @@ function setup()
     pico.set(title, "font_size", 0)
     pico.set(title, "x", X + 62) pico.set(title, "y", Y + 8)
     local dev = pico.create("Button")
-    pico.set(dev, "text", "端末")
+    pico.set(dev, "text", pico.tr("端末"))
     pico.set(dev, "font_size", 0)
     pico.set(dev, "x", X + W - 108) pico.set(dev, "y", Y + 3) pico.set(dev, "w", 52) pico.set(dev, "h", 26)
     pico.on(dev, "press_end", choose_device)
     local menu = pico.create("Button")
-    pico.set(menu, "text", "他")
+    pico.set(menu, "text", pico.tr("他"))
     pico.set(menu, "font_size", 0)
     pico.set(menu, "x", X + W - 52) pico.set(menu, "y", Y + 3) pico.set(menu, "w", 48) pico.set(menu, "h", 26)
     pico.on(menu, "press_end", open_menu)

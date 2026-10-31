@@ -17,7 +17,7 @@ pico.set(canvas, "y", cy0 + 34)
 pico.set(canvas, "w", cw)
 pico.set(canvas, "h", ch - 34)
 
-local last_key = "(キー未入力)"
+local last_key = pico.tr("(キー未入力)")
 local angle = 0
 local t0 = pico.millis()
 
@@ -65,10 +65,10 @@ pico.on(canvas, "render", function()
         pico.draw_image_ex(img, x + 215, y + 190, 0, 0.5, 2, w / 2, h / 2)
     end
     -- 文字: 右寄せ
-    local label = "キー: " .. last_key
+    local label = pico.tr("キー: ") .. last_key
     pico.draw_text(x + cw - pico.text_width(label, 0) - 4, y + 248, label, 0, 0)
     local p, v, usb = pico.battery()
-    if p then pico.draw_text(x + 4, y + 232, string.format("電池%d%% %.2fV%s", p, v, usb and " USB" or ""), 0, 0) end
+    if p then pico.draw_text(x + 4, y + 232, string.format(pico.tr("電池%d%% %.2fV%s"), p, v, usb and " USB" or ""), 0, 0) end
 end)
 
 function loop(dt)

@@ -11,13 +11,13 @@ M.active = false
 local step, t = 1, 0
 
 local STEPS = {
-    { "「建設」で塔を道の近くに建てよう(同じお金なら兵士より強い)", function() return buildings.count() > 0 end },
-    { "柵の中のゾンビは遅く、傷つきやすい。塔の前の道に並べよう", 8 },
-    { "「雇う」の兵士は動かせる。穴をふさぐのに使おう", function() return soldiers.count() > 0 end },
-    { "兵士を選んで地面をタップ(A)すると移動", function() return G.moved end },
-    { "準備ができたら上の「次へ」かSTART(早いとお金)", function() return waves.phase == "wave" end },
-    { "選ぶと下で強化・修理・売却ができる", 8 },
-    { "ゾンビからベースを守り抜こう!", 5 },
+    { pico.tr("「建設」で塔を道の近くに建てよう(同じお金なら兵士より強い)"), function() return buildings.count() > 0 end },
+    { pico.tr("柵の中のゾンビは遅く、傷つきやすい。塔の前の道に並べよう"), 8 },
+    { pico.tr("「雇う」の兵士は動かせる。穴をふさぐのに使おう"), function() return soldiers.count() > 0 end },
+    { pico.tr("兵士を選んで地面をタップ(A)すると移動"), function() return G.moved end },
+    { pico.tr("準備ができたら上の「次へ」かSTART(早いとお金)"), function() return waves.phase == "wave" end },
+    { pico.tr("選ぶと下で強化・修理・売却ができる"), 8 },
+    { pico.tr("ゾンビからベースを守り抜こう!"), 5 },
 }
 
 function M.start()

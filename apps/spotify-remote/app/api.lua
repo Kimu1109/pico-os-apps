@@ -31,15 +31,15 @@ function A.load()
         -- トークンは255バイトを超える(json_pick は文字列を255バイトで切る)ので json_decode で読む
         local r = pico.json_decode(text)
         if not (type(r) == "table" and type(r.client_id) == "string" and type(r.refresh_token) == "string") then
-            return false, A.AUTH_FILE .. " を読めません。作り直してください"
+            return false, pico.tr("%s を読めません。作り直してください", A.AUTH_FILE)
         end
         A.auth = { client_id = r.client_id, refresh_token = r.refresh_token,
                    access_token = type(r.access_token) == "string" and r.access_token or "",
                    expires_at = math.tointeger(r.expires_at) or 0 }
         A.revoked = false
-        if not save() then return true, "ログイン情報を保存できません(SDを確かめてください)" end
+        if not save() then return true, pico.tr("ログイン情報を保存できません(SDを確かめてください)") end
         pico.sd_remove(path)   -- 平文の鍵をSDに残さない
-        return true, "ログイン情報を取り込みました"
+        return true, pico.tr("ログイン情報を取り込みました")
     end
     local st = pico.store_load()
     if type(st) == "table" and type(st.auth) == "table" and st.auth.refresh_token then
@@ -70,7 +70,7 @@ end
 
 -- アクセストークンを取り直す。fn(ok, why)。同時に頼まれたら1回の取り直しを待ち合わせる
 function A.refresh(fn)
-    if not A.auth then return fn(false, "ログインしていません") end
+    if not A.auth then return fn(false, pico.tr("ログインしていません")) end
     waiting[#waiting + 1] = fn
     if refreshing then return end
     refreshing = true
@@ -78,7 +78,7 @@ function A.refresh(fn)
                                    client_id = A.auth.client_id })
     local id = pico.http_request("POST", A.TOKEN_URL, body, "application/x-www-form-urlencoded",
         function(ok, status, text, err)
-            if not ok then return finish(false, "トークンを取れません: " .. tostring(err)) end
+            if not ok then return finish(false, pico.tr("トークンを取れません: ") .. tostring(err)) end
             -- アクセストークンは300文字ほどあり json_pick(255バイトまで)では切れるので json_decode で読む
             local r = text and pico.json_decode(text)
             if type(r) ~= "table" then r = {} end
@@ -92,17 +92,17 @@ function A.refresh(fn)
             end
             if r.error == "invalid_grant" or r.error == "invalid_client" then
                 A.revoked = true
-                return finish(false, "ログインし直してください(" .. tostring(r.error_description or r.error) .. ")")
+                return finish(false, pico.tr("ログインし直してください(%s)", tostring(r.error_description or r.error)))
             end
-            finish(false, "トークンを取れません(HTTP " .. tostring(status) .. ")")
+            finish(false, pico.tr("トークンを取れません(HTTP %s)", tostring(status)))
         end, { keep_alive = true })
-    if not id then finish(false, "通信が混んでいます") end
+    if not id then finish(false, pico.tr("通信が混んでいます")) end
 end
 
 -- APIを呼ぶ。fn(ok, status, body, err, info)。
 -- 401(期限切れ)なら1回だけトークンを取り直して送り直す。json は送る本文(JSONの文字列)か nil
 function A.call(method, path, json, fn, opts)
-    if not A.auth then return fn(false, 0, nil, "ログインしていません", {}) end
+    if not A.auth then return fn(false, 0, nil, pico.tr("ログインしていません"), {}) end
     local function send(retried)
         local id = pico.http_request(method, A.API .. path, json, json and "application/json" or nil,
             function(ok, status, body, err, _, info)
@@ -115,7 +115,7 @@ function A.call(method, path, json, fn, opts)
                 fn(ok, status, body, err, info or {})
             end, { keep_alive = true, save_to = opts and opts.save_to,
                    headers = { Authorization = "Bearer " .. (A.auth.access_token or "") } })
-        if not id then fn(false, 0, nil, "通信が混んでいます", {}) end
+        if not id then fn(false, 0, nil, pico.tr("通信が混んでいます"), {}) end
     end
     if token_ok() then return send(false) end
     A.refresh(function(ok, why)
@@ -128,20 +128,20 @@ function A.download(url, path, fn)
     local id = pico.http_request("GET", url, nil, nil, function(ok, status, _, err, _, info)
         fn(ok and status == 200 and info ~= nil and info.saved ~= nil, err or ("HTTP " .. tostring(status)))
     end, { keep_alive = true, save_to = path })
-    if not id then fn(false, "通信が混んでいます") end
+    if not id then fn(false, pico.tr("通信が混んでいます")) end
 end
 
 -- 失敗の応答から利用者向けの理由を作る(Spotifyは {"error":{"status":..,"message":..,"reason":..}})
 function A.error_text(status, body)
     local r = body and pico.json_pick(body, { "error.message", "error.reason" }) or {}
     local msg = r["error.message"]
-    if status == 404 then return "再生中の端末がありません。Spotifyで再生するか「端末」で選んでください" end
+    if status == 404 then return pico.tr("再生中の端末がありません。Spotifyで再生するか「端末」で選んでください") end
     if status == 403 then
-        if r["error.reason"] == "PREMIUM_REQUIRED" then return "操作にはSpotify Premiumが必要です" end
-        return "この操作はできません" .. (msg and ("(" .. msg .. ")") or "")
+        if r["error.reason"] == "PREMIUM_REQUIRED" then return pico.tr("操作にはSpotify Premiumが必要です") end
+        return pico.tr("この操作はできません") .. (msg and ("(" .. msg .. ")") or "")
     end
-    if status == 429 then return "Spotifyが混んでいます。少し待ちます" end
-    return "エラー(HTTP " .. tostring(status) .. ")" .. (msg and (": " .. msg) or "")
+    if status == 429 then return pico.tr("Spotifyが混んでいます。少し待ちます") end
+    return pico.tr("エラー(HTTP %s)", tostring(status)) .. (msg and (": " .. msg) or "")
 end
 
 return A

@@ -153,17 +153,17 @@ end)
 
 pico.on(btn_save, "press_start", function()
     if pico.canvas_save(canvas, SAVE_PATH) then
-        pico.set(status, "text", "保存しました")
+        pico.set(status, "text", pico.tr("保存しました"))
     else
-        pico.set(status, "text", "保存に失敗しました(SD未挿入?)")
+        pico.set(status, "text", pico.tr("保存に失敗しました(SD未挿入?)"))
     end
 end)
 
 pico.on(btn_load, "press_start", function()
     if pico.canvas_load(canvas, SAVE_PATH) then
-        pico.set(status, "text", "読み込みました")
+        pico.set(status, "text", pico.tr("読み込みました"))
     else
-        pico.set(status, "text", "読み込みに失敗しました(未保存?)")
+        pico.set(status, "text", pico.tr("読み込みに失敗しました(未保存?)"))
     end
 end)
 

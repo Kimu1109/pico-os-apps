@@ -40,12 +40,12 @@ function M.bonus(n) return 30 + 10 * n end
 -- 準備時間に出す予告
 function M.preview(n)
     local a, b, c = M.mix(n)
-    local s = string.format("次 W%d: %d体", n, a + b + c)
-    if c > 0 and select(3, M.mix(n - 1)) == 0 then return s .. " 重量級が来る!" end
-    if b > 0 and select(2, M.mix(n - 1)) == 0 then return s .. " 遠距離が来る!" end
-    if c > 0 then return string.format("%s(遠%d・重%d)", s, b, c) end
-    if b > 0 then s = string.format("%s(遠%d)", s, b) end
-    if n <= M.EARLY then s = s .. " 稼ぎどき" end
+    local s = string.format(pico.tr("次 W%d: %d体"), n, a + b + c)
+    if c > 0 and select(3, M.mix(n - 1)) == 0 then return s .. pico.tr(" 重量級が来る!") end
+    if b > 0 and select(2, M.mix(n - 1)) == 0 then return s .. pico.tr(" 遠距離が来る!") end
+    if c > 0 then return string.format(pico.tr("%s(遠%d・重%d)"), s, b, c) end
+    if b > 0 then s = string.format(pico.tr("%s(遠%d)"), s, b) end
+    if n <= M.EARLY then s = s .. pico.tr(" 稼ぎどき") end
     return s
 end
 

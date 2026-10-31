@@ -20,14 +20,14 @@ local function open(file, args)
 end
 
 local PAGES = {
-    { "基本の部品",     "basics.lua" },
-    { "追加の部品",     "extra.lua" },
-    { "直接描画",       "draw.lua" },
-    { "画面とデータ",   "scene.lua" },
-    { "コントローラー", "pad.lua" },
-    { "音",             "sound.lua" },
-    { "通知",           "notify.lua" },
-    { "マイク",         "mic.lua" },
+    { pico.tr("基本の部品"),     "basics.lua" },
+    { pico.tr("追加の部品"),     "extra.lua" },
+    { pico.tr("直接描画"),       "draw.lua" },
+    { pico.tr("画面とデータ"),   "scene.lua" },
+    { pico.tr("コントローラー"), "pad.lua" },
+    { pico.tr("音"),             "sound.lua" },
+    { pico.tr("通知"),           "notify.lua" },
+    { pico.tr("マイク"),         "mic.lua" },
 }
 
 local BTN_H = 28

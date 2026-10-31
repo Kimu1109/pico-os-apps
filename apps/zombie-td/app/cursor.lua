@@ -102,7 +102,7 @@ local function act(a, dx, dz)
     elseif a == "soldier" or a == "building" then
         local s = a == "soldier"
         local list = s and soldiers.list or buildings.list
-        if #list == 0 then return G.say(s and "兵士がいません" or "建物がありません") end
+        if #list == 0 then return G.say(s and pico.tr("兵士がいません") or pico.tr("建物がありません")) end
         local u = list_next(list, s and G.sel[1] or G.bsel)
         if s then orders.set_selection({ u }) else orders.select_building(u) end
         place(u.x, u.z)

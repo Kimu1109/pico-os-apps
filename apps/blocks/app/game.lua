@@ -17,13 +17,13 @@ local H = 16
 local B = { AIR = 0, WATER = 1, STONE = 2, GRASS = 3, TORCH = 25 }
 local BLOCK_COUNT = 25          -- ブロックの種類(水と松明を含む)
 local NIGHT_SKY = 0             -- 夜の空の色
-local KINDS = { [0] = "自然", "平ら", "デモ", "空" }
+local KINDS = { [0] = pico.tr("自然"), pico.tr("平ら"), pico.tr("デモ"), pico.tr("空") }
 
 for i, c in ipairs(PAL.colors) do pico.set_palette(i, c[1], c[2], c[3]) end
 iso.sky(PAL.sky)
 local DIR = pico.app_dir()
 local img = pico.image_load(pico.path_join(DIR, "faces.pimg"))
-if img then iso.set_image(img) else pico.show_error("faces.pimg を読めません") end
+if img then iso.set_image(img) else pico.show_error(pico.tr("faces.pimg を読めません")) end
 local SAVE_DIR = pico.path_join(DIR, "worlds")
 
 local CX, CY, CW, CH = pico.content_rect()
@@ -64,7 +64,7 @@ local function refresh_slots()
     for i = 1, SLOTS do
         local k, w = iso.info(slot_dir(i) .. "/world.dat")
         if k then exists[i] = (KINDS[k] or "?") .. " " .. w .. "x" .. w
-        elseif pico.sd_exists(old_path(i)) then exists[i] = "48x48(前の版)"
+        elseif pico.sd_exists(old_path(i)) then exists[i] = pico.tr("48x48(前の版)")
         else exists[i] = nil end
     end
 end
@@ -150,7 +150,7 @@ end
 -- ---------------------------------------------------------------- 始める・保存する
 
 local function start(kind)
-    busy(kind and "ワールドを作っています..." or "読み込んでいます...", function()
+    busy(kind and pico.tr("ワールドを作っています...") or pico.tr("読み込んでいます..."), function()
         local d = slot_dir(slot)
         local x, y, z, c
         if kind then
@@ -160,7 +160,7 @@ local function start(kind)
             x, y, z = iso.create(d, kind, math.random(0, 0x7fffffff))
             c = B.STONE
             if not x then
-                pico.show_error("ワールドを作れません: " .. tostring(y))
+                pico.show_error(pico.tr("ワールドを作れません: ") .. tostring(y))
                 set_mode("title")
                 return
             end
@@ -168,14 +168,14 @@ local function start(kind)
             if not iso.info(d .. "/world.dat") and pico.sd_exists(old_path(slot)) then
                 local ok, e = iso.migrate(old_path(slot), d)
                 if not ok then
-                    pico.show_error("前の版のワールドを移せません: " .. tostring(e))
+                    pico.show_error(pico.tr("前の版のワールドを移せません: ") .. tostring(e))
                     set_mode("title")
                     return
                 end
             end
             x, y, z, c = iso.open(d)
             if not x then
-                pico.show_error("ワールドを読めません: " .. tostring(y))
+                pico.show_error(pico.tr("ワールドを読めません: ") .. tostring(y))
                 set_mode("title")
                 return
             end
@@ -186,15 +186,15 @@ local function start(kind)
         iso.cursor(x, y, z, true)
         in_game = true
         center_on(x, y, z)
-        busy_msg = "チャンクを読み込んでいます..."
+        busy_msg = pico.tr("チャンクを読み込んでいます...")
         set_mode("load")
     end)
 end
 
 local function save_and_quit()
-    busy("保存しています...", function()
+    busy(pico.tr("保存しています..."), function()
         local ok = iso.save(cx, cy, cz, cur)
-        if not ok then pico.show_error("保存できませんでした") end
+        if not ok then pico.show_error(pico.tr("保存できませんでした")) end
         iso.close()
         in_game = false
         refresh_slots()
@@ -206,15 +206,15 @@ local function open_slot(i, direct)
     slot = i
     title_sel = i
     pico.invalidate(view)
-    local name = "ワールド " .. string.char(64 + i)
+    local name = pico.tr("ワールド ") .. string.char(64 + i)
     if exists[i] then
         if direct then start(nil); return end
-        local d = pico.show_choice(name, { "遊ぶ", "削除する" })
+        local d = pico.show_choice(name, { pico.tr("遊ぶ"), pico.tr("削除する") })
         pico.on(d, "closed", function(_, ok, v)
             if not ok then return end
             if v == 0 then start(nil)
             else
-                local m = pico.show_message(name .. " を削除しますか?", "いいえ", "はい")
+                local m = pico.show_message(pico.tr("%s を削除しますか?", name), pico.tr("いいえ"), pico.tr("はい"))
                 pico.on(m, "closed", function(_, yes)
                     if yes then
                         pico.sd_remove(slot_dir(i))
@@ -226,7 +226,7 @@ local function open_slot(i, direct)
             end
         end)
     else
-        local d = pico.show_choice("どんなワールド?", { "自然", "平ら", "デモ" })
+        local d = pico.show_choice(pico.tr("どんなワールド?"), { pico.tr("自然"), pico.tr("平ら"), pico.tr("デモ") })
         pico.on(d, "closed", function(_, ok, v) if ok then start(v) end end)
     end
 end
@@ -259,10 +259,10 @@ local function draw_title()
         pico.fill_rect(CX + 10, y, CW - 20, i <= SLOTS and 38 or 30, on and 15 or PAL.light)
         pico.draw_rect(CX + 10, y, CW - 20, i <= SLOTS and 38 or 30, on and PAL.accent or PAL.mid)
         if i <= SLOTS then
-            pico.draw_text(CX + 20, y + 4, "ワールド " .. string.char(64 + i), 0, 0)
-            pico.draw_text(CX + 36, y + 20, exists[i] or "( 空き )", PAL.mid, 0)
+            pico.draw_text(CX + 20, y + 4, pico.tr("ワールド ") .. string.char(64 + i), 0, 0)
+            pico.draw_text(CX + 36, y + 20, exists[i] or pico.tr("( 空き )"), PAL.mid, 0)
         else
-            pico.draw_text(CX + 20, y + 7, "おわる", 0, 0)
+            pico.draw_text(CX + 20, y + 7, pico.tr("おわる"), 0, 0)
         end
     end
 end
@@ -270,7 +270,7 @@ end
 local function draw_select()
     pico.fill_rect(CX, CY, CW, VH, PAL.light)
     pico.draw_rect(CX + 2, CY + 2, CW - 4, VH - 4, 0)
-    pico.draw_text(CX + CW // 2, CY + 6, "ブロックを選ぶ", 0, 0, "center")
+    pico.draw_text(CX + CW // 2, CY + 6, pico.tr("ブロックを選ぶ"), 0, 0, "center")
     for i, b in ipairs(ORDER) do
         local col, row = (i - 1) % SEL_COLS, (i - 1) // SEL_COLS
         local x, y = CX + 1 + col * SEL_STEP, CY + 28 + row * 42
@@ -315,12 +315,12 @@ end
 local function add(id, x, y, w, label, rep)
     BUTTONS[#BUTTONS + 1] = { id = id, x = x, y = y, w = w, h = 30, label = label, rep = rep }
 end
-add("up", 102, 1, 67, "上へ", true)
-add("down", 172, 1, 67, "下へ", true)
+add("up", 102, 1, 67, pico.tr("上へ"), true)
+add("down", 172, 1, 67, pico.tr("下へ"), true)
 add("block", 102, 33, 137)
-add("center", 102, 65, 45, "中央")
+add("center", 102, 65, 45, pico.tr("中央"))
 add("night", 149, 65, 45)
-add("quit", 196, 65, 43, "終了")
+add("quit", 196, 65, 43, pico.tr("終了"))
 
 local held = nil
 
@@ -343,9 +343,9 @@ pico.on(panel, "render", function()
             pico.set_draw_area(x + 1, y + 1, 34, b.h - 2)
             iso.draw_icon(cur, x + 2, y)
             pico.clear_draw_area()
-            pico.draw_text(x + 40, y + 7, "ブロック変更", 0, 0)
+            pico.draw_text(x + 40, y + 7, pico.tr("ブロック変更"), 0, 0)
         elseif b.id == "night" then
-            pico.draw_text(x + b.w // 2, y + (b.h - 16) // 2, night and "昼へ" or "夜へ", 0, 0, "center")
+            pico.draw_text(x + b.w // 2, y + (b.h - 16) // 2, night and pico.tr("昼へ") or pico.tr("夜へ"), 0, 0, "center")
         end
     end
 end)

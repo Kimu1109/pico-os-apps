@@ -13,6 +13,6 @@ pico.log("動作確認(バックグラウンド): " .. runs .. "回目 is_backgr
 if pico.settings_get("bg_notify") == "true" then
     -- タイマーが残っている間はエンジンが生きている(1秒後に出して終わる)
     pico.after(1000, function()
-        pico.notify{ title = "バックグラウンド", body = runs .. "回目に動きました", tag = "bg", data = "bg", sound = false }
+        pico.notify{ title = pico.tr("バックグラウンド"), body = pico.tr("%s回目に動きました", runs), tag = "bg", data = "bg", sound = false }
     end)
 end

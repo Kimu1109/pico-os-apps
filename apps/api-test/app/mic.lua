@@ -34,7 +34,7 @@ local function label(ly, lh)
     return l
 end
 
-button("戻る", x + M, y + 4, 60, function() pico.go_back() end)
+button(pico.tr("戻る"), x + M, y + 4, 60, function() pico.go_back() end)
 pico.on_back(function() pico.mic_stop(); pico.wav_stop(); pico.pop() end)
 
 local status = label(y + 42, 34)
@@ -60,32 +60,32 @@ end)
 local BY = MY + 26
 local half = (w - M * 3) // 2
 local rec_btn
-rec_btn = button("録音", x + M, BY, half, function()
+rec_btn = button(pico.tr("録音"), x + M, BY, half, function()
     if pico.mic_recording() then
         pico.mic_stop()
     else
         local p, err = pico.mic_start()
-        if p then last = p else pico.toast("録音できません: " .. tostring(err)) end
+        if p then last = p else pico.toast(pico.tr("録音できません: ") .. tostring(err)) end
     end
 end)
-button("再生", x + M * 2 + half, BY, half, function()
+button(pico.tr("再生"), x + M * 2 + half, BY, half, function()
     if pico.mic_recording() then return end
-    if not last then pico.toast("まだ録っていません"); return end
+    if not last then pico.toast(pico.tr("まだ録っていません")); return end
     local ok, err = pico.wav_play(last)
-    if not ok then pico.toast("鳴らせません: " .. tostring(err)) end
+    if not ok then pico.toast(pico.tr("鳴らせません: ") .. tostring(err)) end
 end)
 
 local third = (w - M * 4) // 3
-button("増幅-", x + M, BY + 38, third, function() pico.mic_set_gain(pico.mic_gain() - 6) end)
-button("増幅+", x + M * 2 + third, BY + 38, third, function() pico.mic_set_gain(pico.mic_gain() + 6) end)
-button("周波数", x + M * 3 + third * 2, BY + 38, third, function()
+button(pico.tr("増幅-"), x + M, BY + 38, third, function() pico.mic_set_gain(pico.mic_gain() - 6) end)
+button(pico.tr("増幅+"), x + M * 2 + third, BY + 38, third, function() pico.mic_set_gain(pico.mic_gain() + 6) end)
+button(pico.tr("周波数"), x + M * 3 + third * 2, BY + 38, third, function()
     local nxt = { [16000] = 24000, [24000] = 48000, [48000] = 16000 }
     local ok, err = pico.mic_set_rate(nxt[pico.mic_rate()] or 16000)
     if not ok then pico.toast(tostring(err)) end
 end)
 
 local ok, err = pico.mic_monitor(true)
-if not ok then pico.set(status, "text", "メーターを入れられません: " .. tostring(err)) end
+if not ok then pico.set(status, "text", pico.tr("メーターを入れられません: ") .. tostring(err)) end
 
 local shown_rec = nil
 pico.every(50, function()
@@ -102,19 +102,19 @@ pico.every(250, function()
     local i = pico.mic_info()
     local rec = i.recording
     if rec ~= shown_rec then
-        pico.set(rec_btn, "text", i.finishing and "保存中" or (rec and "停止" or "録音"))
+        pico.set(rec_btn, "text", i.finishing and pico.tr("保存中") or (rec and pico.tr("停止") or pico.tr("録音")))
         shown_rec = rec
     end
     local s
     if i.input == "failed" then
-        s = "マイクのI2Sを開始できません"
+        s = pico.tr("マイクのI2Sを開始できません")
     elseif i.input == "running" and not i.signal then
-        s = "マイクの信号がありません(配線を確認)"
+        s = pico.tr("マイクの信号がありません(配線を確認)")
     elseif rec then
-        s = string.format("録音中 %d.%d秒", i.ms // 1000, (i.ms % 1000) // 100)
-        if i.dropped > 0 then s = s .. string.format(" 取りこぼし%d", i.dropped) end
+        s = string.format(pico.tr("録音中 %d.%d秒"), i.ms // 1000, (i.ms % 1000) // 100)
+        if i.dropped > 0 then s = s .. string.format(pico.tr(" 取りこぼし%d"), i.dropped) end
     else
-        s = "待機中 (" .. i.input .. ")"
+        s = pico.tr("待機中 (%s)", i.input)
     end
     pico.set(status, "text", s)
     -- Label は "_" を下線の印として消すので、ファイル名は空白に置き換えて見せる

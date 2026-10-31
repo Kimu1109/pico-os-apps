@@ -13,9 +13,9 @@ local LOG = pico.path_join(pico.app_dir(), "log.csv")
 local LOG_EVERY_S = 60
 
 local MODES = {
-    { key = "high", name = "高負荷", desc = "全面描画+計算" },
-    { key = "mid",  name = "中負荷", desc = "1秒ごと更新" },
-    { key = "low",  name = "低負荷", desc = "放置(スリープ可)" },
+    { key = "high", name = pico.tr("高負荷"), desc = pico.tr("全面描画+計算") },
+    { key = "mid",  name = pico.tr("中負荷"), desc = pico.tr("1秒ごと更新") },
+    { key = "low",  name = pico.tr("低負荷"), desc = pico.tr("放置(スリープ可)") },
 }
 
 local store = pico.store_load() or {}
@@ -61,13 +61,13 @@ local function show_history()
         local s = store.last[m.key]
         parts[#parts + 1] = m.name:sub(1, 3) .. " " .. (s and fmt(s) or "-")
     end
-    pico.set(lbl_hist, "text", "前回 " .. table.concat(parts, " "))
+    pico.set(lbl_hist, "text", pico.tr("前回 %s", table.concat(parts, " ")))
 end
 
 local function battery_text()
     local pct, v, usb = pico.battery()
-    if not pct then return "電池 -", false, nil, nil end
-    return string.format("電池 %d%% %.2fV", pct, v), usb, pct, v
+    if not pct then return pico.tr("電池 -"), false, nil, nil end
+    return string.format(pico.tr("電池 %d%% %.2fV"), pct, v), usb, pct, v
 end
 
 local function save_progress()
@@ -81,7 +81,7 @@ local function save_progress()
     pico.store_save(store)
     shown_batt = text .. (usb and " USB!" or "")
     pico.set(lbl_batt, "text", text)
-    pico.set(lbl_usb, "text", usb and "USB給電中! 外して測る" or "")
+    pico.set(lbl_usb, "text", usb and pico.tr("USB給電中! 外して測る") or "")
 end
 
 local function set_idle_ui(idle)
@@ -106,7 +106,7 @@ local function start(m)
     running = true
     total_s, rem_ms, since_log = 0, 0, 0
     set_idle_ui(false)
-    pico.set(lbl_state, "text", m.name .. " 測定中(run " .. run_no .. ")")
+    pico.set(lbl_state, "text", pico.tr("%s 測定中(run %s)", m.name, run_no))
     pico.set(lbl_time, "text", fmt(0))
     save_progress()
 end
@@ -116,25 +116,25 @@ local function stop()
     running = false
     save_progress()
     set_idle_ui(true)
-    pico.set(lbl_state, "text", "停止しました(" .. mode.name .. " " .. fmt(total_s) .. ")")
+    pico.set(lbl_state, "text", pico.tr("停止しました(%s %s)", mode.name, fmt(total_s)))
     show_history()
 end
 
-label(Y + 2, "電池テスト", 1)
+label(Y + 2, pico.tr("電池テスト"), 1)
 for i, m in ipairs(MODES) do
     local by = Y + 30 + (i - 1) * 40
     mode_btns[i] = button(m.name, X + 4, by, 84, 36, function() start(m) end)
     mode_descs[i] = label(by + 8, m.desc, 0)
     pico.set(mode_descs[i], "x", X + 94)
 end
-lbl_state = label(Y + 30 + 3 * 40 + 2, "測る負荷を選んで開始", 0)
+lbl_state = label(Y + 30 + 3 * 40 + 2, pico.tr("測る負荷を選んで開始"), 0)
 lbl_time = label(Y + 30 + 3 * 40 + 22, "", 2)
 lbl_batt = label(Y + 30 + 3 * 40 + 56, (battery_text()), 0)
 lbl_usb = label(Y + 30 + 3 * 40 + 76, "", 0)
 lbl_hist = label(Y + 30 + 3 * 40 + 96, "", 0)
 pico.set(lbl_time, "text", "0:00:00")
-btn_stop = button("停止", X + 4, Y + 30, W - 8, 36, stop)
-btn_back = button("戻る", X + 4, Y + H - 34, 84, 30, function() pico.pop() end)
+btn_stop = button(pico.tr("停止"), X + 4, Y + 30, W - 8, 36, stop)
+btn_back = button(pico.tr("戻る"), X + 4, Y + H - 34, 84, 30, function() pico.pop() end)
 
 canvas = pico.create("Canvas")
 pico.set(canvas, "x", X)
@@ -150,7 +150,7 @@ pico.on(canvas, "render", function()
             cx + cw - 1 - (i * 53 + frame * 3) % cw, cy + ch - 1, (i + frame) % 16)
     end
     pico.fill_circle(cx + (frame * 4) % cw, cy + (frame * 3) % ch, 20, 15 - (frame // 20) % 14)
-    pico.draw_text(cx + 6, cy + 6, "高負荷 run " .. run_no, 0)
+    pico.draw_text(cx + 6, cy + 6, pico.tr("高負荷 run %s", run_no), 0)
     pico.draw_text(cx + 6, cy + 28, shown_time, 0)
     pico.draw_text(cx + 6, cy + 50, shown_batt, 0)
 end)
