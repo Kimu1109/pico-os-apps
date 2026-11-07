@@ -2,10 +2,12 @@
 
 [pico-os](https://github.com/Kimu1109/pico-os)(Raspberry Pi Pico 2 W で動く自作のタッチGUI OS)のアプリストアの配布元です。
 ここにある Lua アプリが、本体のランチャの「ストア」と [Webのページ](https://kimu1109.github.io/pico-os-apps/) に並びます。
+pico-os の**標準のLuaアプリ(テトリス・ペイント・ゾンビTD・動作確認 等)の正本もここ**です(pico-os には置いていません。
+pico-os の PC/Webビルドは、ここから公開したストアを取って SD に入れます)。
 
 **投稿はプルリクエストで受け付けます。** 検査は GitHub Actions がして、決まりを満たす更新は自動でマージし、
 main への反映でカタログに署名して GitHub Pages へ出します。配布の形式は pico-os の
-[docs/APP_REPO.md](https://github.com/Kimu1109/pico-os/blob/main/docs/APP_REPO.md)、設計の経緯は
+[docs/spec/APP_REPO.md](https://github.com/Kimu1109/pico-os/blob/main/docs/spec/APP_REPO.md)、設計の経緯は
 [docs/design/lua-apps.md「アプリストアの投稿」](https://github.com/Kimu1109/pico-os/blob/main/docs/design/lua-apps.md)。
 
 ## 置き方
@@ -20,7 +22,9 @@ apps/<id>/files.tsv    author-sign が作る
 apps/<id>/files.sig    〃(作者の鍵の署名)
 status.tsv             <id> <TAB> <status> <TAB> <理由>(管理者だけが変える。- / yanked / blocked)
 script/                build_app_repo.py・generate_pimg.py(pico-os の写し。直すのは pico-os 側)
-web/store.html         Webのページの雛形(同じく pico-os の pc/web/store.html の写し)
+script/assets/         標準アプリの絵(.pimg)を作るもの・アイコンの元絵(ここが正本)
+tests/host/            標準アプリのテスト(pico-os のホストテストの lua-apps グループが動かす。下の「標準アプリの開発」)
+web/store.html         Webのページの雛形(同じく pico-os の site/store.html の写し)
 ```
 
 - 置くのは最新版だけです(本体が取るのも最新版だけ。古い版は git の履歴にあります)。
@@ -64,31 +68,42 @@ Python 3 だけで動きます(追加のパッケージは要りません)。
 鍵を無くしたときは、`meta.cfg` の `key` を新しい鍵に替えるPRを出してください(管理者が見ます)。
 その版は、入れている端末では「作者の鍵が変わった」になり、一度消してから入れ直すことになります。
 
-## pico-os の公式アプリの更新(管理者)
+## 標準アプリの開発(管理者)
 
-公式アプリの開発元は pico-os の `pc/sdcard/lua/apps/` です(テストとPCビルドがそこを使うため)。
-pico-os で `app.cfg` の `version` を上げてから、pico-os を隣に置いて、版が上がったものをまとめて写して署名し、1つのPRを出します。
+pico-os の標準のLuaアプリ(`meta.cfg` の owners が kimu1109 のもの)は、**ここの `apps/<id>/app/` を直接直します**(2026-11-07 から。
+それまでの正本は pico-os の `sdcard/lua/apps/` で、`sync-official` で写していました)。pico-os を隣(`../pico-os`)に置いて使います。
 
 ```sh
-python3 script/build_app_repo.py sync-official --key ~/.pico-os/app_repo.key \
-    --src ../pico-os/pc/sdcard/lua/apps --dry-run   # 何をするか確かめる
-python3 script/build_app_repo.py sync-official --key ~/.pico-os/app_repo.key \
-    --src ../pico-os/pc/sdcard/lua/apps             # 写して署名する
-git checkout -b update-apps && git add apps && git commit -m "公式アプリの更新" && git push -u origin update-apps
+# PCビルドで見る: ここの app/ を pico-os の sdcard/lua/apps/ へ写して起動する(署名は見ない)
+python3 ../pico-os/script/release/build_app_repo.py fetch --registry . --only tetris
+(cd ../pico-os && ./pc/build/picoos_pc --app テトリス)
+
+# テスト(pico-os の土台の上で動かす。CI の test.yml と同じ)
+sh ../pico-os/script/host_test/run.sh lua-apps             # tests/host/(隣の ../pico-os-apps を自動で見つける)
+python3 ../pico-os/cli-tool/picoos lua-test apps           # apps/*/app/tests/(pico_mock の上)
+python3 ../pico-os/script/codegen/i18n.py lua apps/tetris/app        # pico.tr の原文を lang/en.lua へ足す
+python3 ../pico-os/script/codegen/i18n.py lua-check apps/*/app       # 訳が合っているか
+
+# 絵を作り直す(script/assets/ の generate_*.py。出力の既定は apps/<id>/app/)
+python3 script/assets/generate_tetris_blocks.py
 ```
 
-- 写すのは、ここに同じ id があり、`meta.cfg` の鍵が `--key` のアプリで、版が上がったものだけです(他の作者のアプリには触れません)。
-- 版を上げずに中身が変わったもの・ここより古い版は、警告だけ出して写しません。まだ公開していないアプリは一覧に出すだけです。
+直したら `app.cfg` の `version` を上げ、この鍵のアプリのうち中身が変わったものにまとめて署名し直して、1つのPRを出します。
+
+```sh
+python3 script/build_app_repo.py sign-changed --key ~/.pico-os/app_repo.key --dry-run   # 何をするか確かめる
+python3 script/build_app_repo.py sign-changed --key ~/.pico-os/app_repo.key             # 署名する
+git checkout -b update-apps && git add apps && git commit -m "標準アプリの更新" && git push -u origin update-apps
+```
+
+- 署名し直すのは、`meta.cfg` の鍵が `--key` のアプリで、`app/` の中身が `files.tsv` と違うものだけです(他の作者のアプリには触れません)。
+- 中身が変わったのに版が前の署名と同じものは、署名しないで止まります(端末は同じ版を更新と見ないので、配っても届かない)。
 - 2本以上を1つのPRにすると `needs-review` が付くので、管理者がマージします(1本だけなら自動でマージされます)。
-
-初めて公開する公式アプリは、`meta.cfg` も作るので1本ずつ `author-sign` で入れます。
-
-```sh
-python3 script/build_app_repo.py author-sign --key ~/.pico-os/app_repo.key --app apps/<id> \
-    --src ../pico-os/pc/sdcard/lua/apps/<ディレクトリ> --owner kimu1109 --dir <ディレクトリ>
-```
-
-どちらも `--src` から git が管理しているファイルだけを写します(遊んでいる間にできたセーブ等は写らない)。
+- 初めて公開するアプリは `meta.cfg` を足し(owners・key・dir)、人が見てマージします。
+- テスト(`test.yml`)は PR の中身を動かすので、自動マージの判定(`check.yml`)とは別です。必ず通してからマージしたいときは、
+  ルールセットの「Require status checks to pass」に `ホストテスト・lua-test・訳` を足します。
+- `test.yml` は pico-os の main を土台にします。pico-os 側で土台(`pico_mock.lua`・`pico.game` 等)を変えたときは、
+  pico-os の `host-tests.yml` の lua-apps のジョブが、ここの main のテストで壊れていないかを見ます。
 
 ## 管理者の準備(1回だけ)
 

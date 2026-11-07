@@ -1,4 +1,4 @@
--- QRコード の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- QRコード の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["URL・サイト"] = "URL / site",
     ["連絡先"] = "Contact",

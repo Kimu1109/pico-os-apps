@@ -1,4 +1,4 @@
--- 実機チェック の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- 実機チェック の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["「全部」で測り始めます"] = "Press \"All\" to start",
     ["整数の足し算 10万回: %s"] = "Integer add x100k: %s",

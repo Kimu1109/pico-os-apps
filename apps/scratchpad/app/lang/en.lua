@@ -1,4 +1,4 @@
--- スクラッチパッド の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- スクラッチパッド の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["保存しました"] = "Saved",
     ["保存に失敗しました(SD未挿入?)"] = "Save failed (no SD card?)",

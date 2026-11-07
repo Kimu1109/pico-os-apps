@@ -1,4 +1,4 @@
--- マインスイーパー の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- マインスイーパー の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["初級"] = "Easy",
     ["中級"] = "Mid",

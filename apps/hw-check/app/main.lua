@@ -1,4 +1,4 @@
--- 実機チェック: 実機の速さとメモリを測るアプリ(docs/HARDWARE_CHECKLIST.md の 5・7章)。
+-- 実機チェック: 実機の速さとメモリを測るアプリ(docs/guide/HARDWARE_CHECKLIST.md の 5・7章)。
 -- 「全部」で上から順に測り、結果を画面とログ([HWCHK] の行)と results.txt(追記)へ出す。
 --
 --   Lua     … 整数/小数の計算・表への追加・文字列の連結・ごみ集め

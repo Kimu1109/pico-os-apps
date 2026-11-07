@@ -1,4 +1,4 @@
--- 動作確認 の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- 動作確認 の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["バックグラウンド"] = "Background",
     ["%s回目に動きました"] = "Ran %s times",

@@ -1,4 +1,4 @@
--- おしてのぼれ の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- おしてのぼれ の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["おしてのぼれ"] = "PUSH & CLIMB",
     ["箱を押して、積んで、\n旗まで行こう"] = "Push boxes, stack them,\nand reach the flag",

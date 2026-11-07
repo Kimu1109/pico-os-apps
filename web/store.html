@@ -1,13 +1,13 @@
 <!doctype html>
 <!--
   アプリストアのWebのページ(https://kimu1109.github.io/pico-os-apps/。投稿用リポジトリ kimu1109/pico-os-apps の Pages)。
-  script/build_app_repo.py site が、配布物(catalog.tsv 等)から次を埋めて <配布物>/index.html として置く:
+  script/release/build_app_repo.py site が、配布物(catalog.tsv 等)から次を埋めて <配布物>/index.html として置く:
     アプリのカード(APPS の印のコメント) / 件数(COUNT の印) / 作った日(UPDATED の印)
   カードの中身は render_card()(同じスクリプト)。各カードの DOWNLOAD は <id>-<版>.papp(SDの直下に置けば
-  次の起動で入るパッケージ。docs/APP_REPO.md「パッケージ(.papp)」)。
+  次の起動で入るパッケージ。docs/spec/APP_REPO.md「パッケージ(.papp)」)。
   端末のストア(ランチャの「ストア」)は同じURLの catalog.tsv を読むので、このページと同じものが並ぶ。
 
-  見た目はトップ(pc/web/landing.html)と同じ: OSのパレット・2px線・右下に影・DotGothic16 / Press Start 2P。
+  見た目はトップ(site/landing.html)と同じ: OSのパレット・2px線・右下に影・DotGothic16 / Press Start 2P。
   JavaScriptは絞り込みとテーマの切り替えだけ(無くても一覧とダウンロードは使える)。
   pico-os の Pages とは別のサイトに置くので、トップ・PLAY・LUA API へのリンクは絶対URLで書く。
   正本はこのファイルで、pico-os-apps の web/store.html はその写し(直したら写し直す)。
@@ -17,8 +17,81 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pico-os App Store</title>
-<meta name="description" content="pico-os のLuaアプリを探してダウンロードできます。SDカードの直下に置くと、次の起動でインストールされます。">
+<meta name="description" data-i18n-attr="content=meta.desc" content="pico-os のLuaアプリを探してダウンロードできます。SDカードの直下に置くと、次の起動でインストールされます。">
 <meta name="color-scheme" content="light dark">
+<script>
+  // ---- 表示言語(日本語/英語)。landing / download / shell / store の4ページで同じ中身。直したら合わせる ----
+  // 決め方: URLの ?lang=ja|en > このブラウザで選んだ言語(localStorage "picoos-lang"。4ページで共通。Web版のOSは日本語の版で、この言語に従わない) >
+  // ブラウザの言語(ja 以外は英語)。?lang= で来たときも覚える(ページを移っても同じ言語)。
+  // 訳す要素には data-i18n="鍵"(中身を差し替える。訳は固定の文字列だけなのでHTMLのまま入れる)、
+  // 属性は data-i18n-attr="属性=鍵;属性=鍵"。日本語はHTMLに書いたものをそのまま使い、訳の表は英語だけ持つ。
+  // JSで作る文は I18n.t("日本語", "English")
+  var I18n = (function () {
+    var KEY = "picoos-lang";
+    function norm(v) { v = String(v || "").toLowerCase(); return v === "ja" || v === "en" ? v : null; }
+    function save(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+    var lang = null;
+    try { lang = norm(new URLSearchParams(location.search).get("lang")); } catch (e) {}
+    if (lang) save(lang);
+    if (!lang) { try { lang = norm(localStorage.getItem(KEY)); } catch (e) {} }
+    if (!lang) lang = /^ja/i.test(navigator.language || "") ? "ja" : "en";
+    document.documentElement.lang = lang;
+    var en = {}, orig = new Map(), hooks = [];
+    function pick(node, slot, key, cur) {
+      var m = orig.get(node);
+      if (!m) { m = {}; orig.set(node, m); }
+      if (!(slot in m)) m[slot] = cur;
+      return lang === "en" && key in en ? en[key] : m[slot];
+    }
+    function apply() {
+      document.documentElement.lang = lang;
+      document.querySelectorAll("[data-i18n]").forEach(function (n) {
+        var v = pick(n, "", n.dataset.i18n, n.innerHTML);
+        if (n.innerHTML !== v) n.innerHTML = v;
+      });
+      document.querySelectorAll("[data-i18n-attr]").forEach(function (n) {
+        n.dataset.i18nAttr.split(";").forEach(function (pair) {
+          var kv = pair.split("=");
+          if (kv.length === 2) n.setAttribute(kv[0], pick(n, "@" + kv[0], kv[1], n.getAttribute(kv[0]) || ""));
+        });
+      });
+      var b = document.getElementById("langBtn");
+      if (b) {
+        b.textContent = lang === "ja" ? "EN" : "JA";
+        b.title = lang === "ja" ? "English" : "日本語";
+        b.setAttribute("aria-label", lang === "ja" ? "Switch to English" : "日本語に切り替える");
+      }
+      hooks.forEach(function (fn) { fn(lang); });
+    }
+    return {
+      get lang() { return lang; },
+      t: function (ja, enText) { return lang === "en" ? enText : ja; },
+      // 訳の表を渡して当てる。言語の切り替えボタン(id="langBtn")があればつなぐ。onToggle を渡すとボタンの動きを差し替える
+      init: function (dict, onToggle) {
+        en = dict || {};
+        var b = document.getElementById("langBtn");
+        if (b) b.addEventListener("click", function () {
+          var next = lang === "ja" ? "en" : "ja";
+          if (onToggle) { save(next); onToggle(next); } else I18n.set(next);
+        });
+        apply();
+      },
+      set: function (v) {
+        v = norm(v);
+        if (!v) return;
+        lang = v;
+        save(v);
+        // URLに ?lang= が残っていると、読み込み直したときに戻ってしまうので消す
+        try {
+          var u = new URL(location.href);
+          if (u.searchParams.has("lang")) { u.searchParams.delete("lang"); history.replaceState(null, "", u); }
+        } catch (e) {}
+        apply();
+      },
+      onChange: function (fn) { hooks.push(fn); }
+    };
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -82,6 +155,7 @@
     width: 32px; height: 32px; padding: 0; cursor: pointer;
     background: var(--bg); color: var(--fg); border: 2px solid var(--line); font-size: 16px; line-height: 1;
   }
+  .lang-btn { width: auto; min-width: 32px; padding: 0 6px; font: 9px "Press Start 2P", monospace; }
   @media (max-width: 480px) { .sb-nav a.opt { display: none; } }
 
   /* ---- ボタン ---- */
@@ -168,11 +242,12 @@
 <header class="statusbar">
   <div class="wrap">
     <a class="sb-home px" href="https://kimu1109.github.io/pico-os/">PICO-OS</a>
-    <nav class="sb-nav px" aria-label="ページの移動">
+    <nav class="sb-nav px" aria-label="ページの移動" data-i18n-attr="aria-label=nav">
       <a class="on" href="./">STORE</a>
       <a class="opt" href="https://kimu1109.github.io/pico-os/playground/">PLAY</a>
       <a class="opt" href="https://kimu1109.github.io/pico-os/lua-api/">LUA API</a>
-      <button class="theme-btn" id="themeBtn" type="button" aria-label="明るさのテーマを切り替える" title="テーマを切り替える">◐</button>
+      <button class="theme-btn lang-btn" id="langBtn" type="button">EN</button>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="明るさのテーマを切り替える" title="テーマを切り替える" data-i18n-attr="aria-label=theme.aria;title=theme.title">◐</button>
     </nav>
   </div>
 </header>
@@ -180,42 +255,83 @@
 <main class="wrap">
   <section class="hero">
     <h1>APP STORE<span class="cur">_</span></h1>
-    <p class="lead">pico-os で動くLuaアプリを、ここから入れられます。</p>
-    <p class="sub">本体のランチャの「ストア」にも同じアプリが並びます(Wi-Fiにつながっていれば、本体だけで入れられます)。</p>
+    <p class="lead" data-i18n="lead">pico-os で動くLuaアプリを、ここから入れられます。</p>
+    <p class="sub" data-i18n="sub">本体のランチャの「ストア」にも同じアプリが並びます(Wi-Fiにつながっていれば、本体だけで入れられます)。</p>
   </section>
 
   <section class="win" aria-labelledby="howto">
-    <div class="win-head"><h2 id="howto">HOW TO INSTALL</h2><span class="jp">SDカードから入れる</span></div>
+    <div class="win-head"><h2 id="howto">HOW TO INSTALL</h2><span class="jp" data-i18n="h.howto">SDカードから入れる</span></div>
     <ol class="steps">
-      <li>入れたいアプリの <b>DOWNLOAD</b> を押して <code>.papp</code> ファイルを保存する</li>
-      <li>ファイルを名前を変えずに、SDカードの<b>いちばん上(直下)</b>へコピーする(USBドライブでも可)</li>
-      <li>pico-os を起動する。入るとファイルは消え、ランチャにアプリが並ぶ</li>
+      <li data-i18n="step0">入れたいアプリの <b>DOWNLOAD</b> を押して <code>.papp</code> ファイルを保存する</li>
+      <li data-i18n="step1">ファイルを名前を変えずに、SDカードの<b>いちばん上(直下)</b>へコピーする(USBドライブでも可)</li>
+      <li data-i18n="step2">pico-os を起動する。入るとファイルは消え、ランチャにアプリが並ぶ</li>
     </ol>
-    <p class="note">入れられなかったときはファイルの名前の後ろに <code>.err</code> が付き、通知に理由が出ます。
+    <p class="note" data-i18n="note">入れられなかったときはファイルの名前の後ろに <code>.err</code> が付き、通知に理由が出ます。
       どのパッケージも作者の署名とファイルごとのSHA-256を本体が確かめてから入れます(途中で壊れたものは入りません)。</p>
   </section>
 
   <div class="tools">
-    <input id="q" type="search" placeholder="アプリを探す(名前・説明・作者)" aria-label="アプリを探す">
+    <input id="q" type="search" placeholder="アプリを探す(名前・説明・作者)" aria-label="アプリを探す" data-i18n-attr="placeholder=search;aria-label=search.aria">
     <span class="count px" id="count">@@COUNT@@ APPS</span>
   </div>
   <div class="cards" id="cards">
 <!--@APPS@-->
   </div>
-  <p class="empty" id="empty">見つかりませんでした</p>
+  <p class="empty" id="empty" data-i18n="empty">見つかりませんでした</p>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>pico-os App Store · 更新 @@UPDATED@@</span>
-    <span><a href="https://github.com/Kimu1109/pico-os-apps#readme">アプリを投稿する</a> ·
-      <a href="https://github.com/Kimu1109/pico-os/blob/main/docs/APP_REPO.md">配布の形式</a> ·
+    <span>pico-os App Store · <span data-i18n="updated">更新</span> @@UPDATED@@</span>
+    <span data-i18n="foot.links"><a href="https://github.com/Kimu1109/pico-os-apps#readme">アプリを投稿する</a> ·
+      <a href="https://github.com/Kimu1109/pico-os/blob/main/docs/spec/APP_REPO.md">配布の形式</a> ·
       <a href="https://github.com/Kimu1109/pico-os">GitHub</a></span>
   </div>
 </footer>
 
 <script>
-  // 絞り込み(カードの data-search に名前・id・説明・作者を小文字で入れてある)
+  // 英語の訳(鍵は data-i18n / data-i18n-attr の値。日本語はHTMLにあるもの)。
+  // 権限の印(perm.*)は render_card() が鍵を付ける。アプリの名前・説明の訳は下の「アプリの訳」
+  I18n.init({
+    "meta.desc": "Find and download Lua apps for pico-os. Put one in the root of the SD card and it installs on the next boot.",
+    "nav": "Pages",
+    "theme.aria": "Switch between light and dark theme",
+    "theme.title": "Switch theme",
+    "lead": "Install Lua apps that run on pico-os, right from here.",
+    "sub": "The same apps are listed in “Store” in the device's launcher (with Wi-Fi, the device can install them by itself).",
+    "h.howto": "Install from the SD card",
+    "step0": "Press <b>DOWNLOAD</b> on the app you want and save the <code>.papp</code> file",
+    "step1": "Copy the file, without renaming it, to the <b>root (top level)</b> of the SD card (the USB drive mode works too)",
+    "step2": "Start pico-os. The file is removed once installed, and the app appears in the launcher",
+    "note": "If installing fails, <code>.err</code> is added to the end of the file name and a notification tells you why. " +
+      "For every package the device checks the author's signature and each file's SHA-256 before installing (broken downloads are never installed).",
+    "search": "Search apps (name, description, author)",
+    "search.aria": "Search apps",
+    "empty": "Nothing found",
+    "updated": "updated",
+    "foot.links": '<a href="https://github.com/Kimu1109/pico-os-apps#readme">Submit an app</a> · ' +
+      '<a href="https://github.com/Kimu1109/pico-os/blob/main/docs/spec/APP_REPO.md">Package format (Japanese)</a> · ' +
+      '<a href="https://github.com/Kimu1109/pico-os">GitHub</a>',
+    "perm.none": "No permissions",
+    "perm.network": "Network", "perm.notify": "Notifications", "perm.sd": "Whole SD card",
+    "perm.background": "Background", "perm.microphone": "Microphone"
+  });
+
+  // アプリの訳: 作者が app.cfg に name_en / description_en を書いたアプリは、render_card() がその訳を data-en に入れてある。
+  // 英語のときはそれに差し替え、日本語に戻すときは最初に覚えた原文(data-ja)へ戻す。訳の無いアプリは原文のまま
+  (function () {
+    function applyAppText(l) {
+      document.querySelectorAll("#cards [data-en]").forEach(function (n) {
+        if (!n.hasAttribute("data-ja")) n.setAttribute("data-ja", n.textContent);
+        var v = n.getAttribute(l === "en" ? "data-en" : "data-ja");
+        if (n.textContent !== v) n.textContent = v;
+      });
+    }
+    I18n.onChange(applyAppText);
+    applyAppText(I18n.lang);
+  })();
+
+  // 絞り込み(カードの data-search に名前・id・説明・作者と、名前・説明の訳を小文字で入れてある)
   (function () {
     var q = document.getElementById("q");
     var cards = document.querySelectorAll("#cards .card");

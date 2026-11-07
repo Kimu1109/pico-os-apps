@@ -1,0 +1,55 @@
+# 標準のLuaアプリのテスト。アプリを変えて壊れないかを、pico-os の main の土台(ホストテスト・pico_mock・pico.game・LuaEngine)で見る。
+# 設計は pico-os の docs/design/lua-apps.md「標準Luaアプリの置き場所」。
+#
+#   tests/host/*_test.lua・*_test.cpp … pico-os の script/host_test/run.sh lua-apps(PICOOS_APPS_DIR にこのリポジトリ)
+#   apps/*/app/tests/*_test.lua        … pico-os の picoos lua-test(pico_mock の上でアプリを動かす)
+#   apps/*/app/lang/en.lua             … pico-os の i18n.py lua-check(pico.tr と訳が合っているか)
+#
+# 守り方: check.yml(投稿の検査)と違い、ここは PR の中身を**実行する**。だから pull_request(pull_request_target ではない)で、
+# 読むだけの権限・Secretなしで動かす(フォークからのPRには書き込みのトークンが渡らない)。自動マージの判定(check.yml)はこの結果を見ない。
+# pico-os を変えて標準アプリが壊れないかは、pico-os の host-tests.yml の lua-apps のジョブが逆向きに見る。
+name: アプリのテスト
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ホストテスト・lua-test・訳
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: このリポジトリを取る
+        uses: actions/checkout@v4
+        with:
+          path: apps
+          persist-credentials: false
+
+      - name: pico-os(テストの土台)を取る
+        uses: actions/checkout@v4
+        with:
+          repository: Kimu1109/pico-os
+          path: pico-os
+          persist-credentials: false
+
+      # g++・cmake・ninja・python3・libssl-dev はランナーのイメージに最初から入っている(pico-os の host-tests.yml と同じ)
+      - name: ホストテスト(lua-apps)
+        env:
+          PICOOS_APPS_DIR: ${{ github.workspace }}/apps
+        run: sh pico-os/script/host_test/run.sh lua-apps
+
+      - name: アプリの tests/(picoos lua-test)
+        run: python3 pico-os/cli-tool/picoos lua-test apps/apps
+
+      - name: 訳(lang/en.lua が pico.tr と合っているか)
+        run: python3 pico-os/script/codegen/i18n.py lua-check apps/apps/*/app
