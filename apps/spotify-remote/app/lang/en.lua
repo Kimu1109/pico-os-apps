@@ -1,4 +1,4 @@
--- Spotify の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- Spotify の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["%s を読めません。作り直してください"] = "Cannot read %s. Make it again",
     ["ログイン情報を保存できません(SDを確かめてください)"] = "Cannot save the login (check the SD card)",

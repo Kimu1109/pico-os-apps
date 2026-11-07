@@ -1,4 +1,4 @@
--- ニュース の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- ニュース の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["ヘッドライン"] = "Headlines",
     ["国内"] = "Japan",

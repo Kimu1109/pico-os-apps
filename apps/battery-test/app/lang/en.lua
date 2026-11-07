@@ -1,4 +1,4 @@
--- 電池テスト の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/i18n.py lua で足す
+-- 電池テスト の英語の表示(pico.tr の原文 → 訳)。原文は python3 script/codegen/i18n.py lua で足す
 return {
     ["高負荷"] = "High",
     ["全面描画+計算"] = "Redraw + compute",

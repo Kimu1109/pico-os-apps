@@ -1,4 +1,4 @@
-; pico-os MML のサンプル(docs/MUSIC_FORMAT.md)。「動作確認」アプリの「音」のデモ曲と同じもの
+; pico-os MML のサンプル(docs/spec/MUSIC_FORMAT.md)。「動作確認」アプリの「音」のデモ曲と同じもの
 #title    デモ曲
 #composer pico-os
 #tempo    200

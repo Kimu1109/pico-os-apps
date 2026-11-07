@@ -1,7 +1,7 @@
 -- SpotifyのWeb APIとの通信: トークンの管理と要求。画面のことは知らない。
 --
 -- 最初のトークンは本体では取れない(OAuthの戻り先がHTTPSか127.0.0.1に限られる)ので、
--- PCで script/spotify_auth.py(picoos spotify-auth)を動かして、このアプリのフォルダへ
+-- PCで script/tools/spotify_auth.py(picoos spotify-auth)を動かして、このアプリのフォルダへ
 -- spotify_auth.json を置いてもらう。読んだら暗号化して store.json へ移し、平文のファイルは消す。
 local A = {}
 
